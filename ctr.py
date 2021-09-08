@@ -1,19 +1,12 @@
-# import sqlite3
+import sqlite3
 
-# conn = sqlite3.connect('Winsy.db')
+conn = sqlite3.connect("Winsy.db")
 
-# def main():
-#     c = conn.cursor()
-#     c.execute("""SELECT Ctr FROM ctr""")
-#     rep = c.fetchone()
-#     print(rep[-1])
-# main()
+def main(type):
+    cursor = conn.cursor()
+    cursor.execute("""SELECT * FROM roasts WHERE type = ?""", [type])
+    response = cursor.fetchall()
+    for tuple in response:
+        print(tuple)
 
-def func(num):
-    if num == +1:
-        print("Increased")
-
-    elif num == -1:
-        print("Decreased")
-
-func(-1)
+main('Normal')
