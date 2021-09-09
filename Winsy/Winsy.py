@@ -60,42 +60,43 @@ async def fetch_roasts(member_id, author_id):
     return dict
 
 def fetch_face(member_id):
-    def dict_maker(length, pics):
-        dict = {}
-        ctr = 0
-        for i in range(length):
-            dict.update({ctr : pics[ctr]})
-            ctr += 1
+    # def dict_maker(length, pics):
+    #     dict = {}
+    #     ctr = 0
+    #     for i in range(length):
+    #         dict.update({ctr : pics[ctr]})
+    #         ctr += 1
 
-        dict.update({'length' : length})
-        return dict
+    #     dict.update({'length' : length})
+    #     return dict
 
-    repo_dict = {}
-    cursor = conn.cursor()
-    cursor.execute("""SELECT * FROM faces WHERE user_id = ?""", [member_id])
-    response = cursor.fetchall()
-    length = len(response)
-    pic_list = []
-    for tuple in response:
-        pic_list.append(tuple[1])
-
-    repo_dict.update(dict_maker(length, pic_list))
-    return repo_dict
+    # repo_dict = {}
     # cursor = conn.cursor()
     # cursor.execute("""SELECT * FROM faces WHERE user_id = ?""", [member_id])
     # response = cursor.fetchall()
-    # pics_byte = []
-    # if len(response) != 0:
-    #     for elms in response:
-    #         pics_byte.append(elms[1])
-    #     return pics_byte
+    # length = len(response)
+    # pic_list = []
+    # for tuple in response:
+    #     pic_list.append(tuple[1])
 
-    # else:
-    #     return False
+    # repo_dict.update(dict_maker(length, pic_list))
+    # return repo_dict
+    cursor = conn.cursor()
+    cursor.execute("""SELECT * FROM faces WHERE user_id = ?""", [member_id])
+    response = cursor.fetchall()
+    pics_byte = []
+    if len(response) != 0:
+        for elms in response:
+            pics_byte.append(elms[1])
+        return pics_byte
+
+    else:
+        return False
 
 def write_pic(bytes):
     with open('temp.jpg', 'wb') as f:
         f.write(bytes)
+        f.close()
 
 async def embed_maker(arr=None, link=None):
     if arr != None:
@@ -107,6 +108,7 @@ async def embed_maker(arr=None, link=None):
             quality_dialouge += f'\n {index}. {arr[ctr]}'
             ctr += 1
             index += 1
+        
         embed = discord.Embed(description=dialouge+quality_dialouge, color=color())
 
     elif link != None:
@@ -322,6 +324,9 @@ async def yt(ctx, url:str=None):
                     return
 
                 if choice == '1':
+                    if "720" in response["video_quality"] and "720" not in available_video_qualities:
+                        available_video_qualities.append("720")
+
                     embed2 = await embed_maker(arr=available_video_qualities)
                     await message.edit(embed=embed2, content="")
 
@@ -359,23 +364,34 @@ async def yt(ctx, url:str=None):
                             else:
                                 continue
 
-                    if flag != True:
-                        await message.delete()
-                        await ctx.send("Invalid index given.")
-
-                    else:
+                    if flag == True:
                         inside_index = in_url[correct_index]
                         vid_url = inside_index['url']
                         await message.delete()
                         embed = await embed_maker(link=await url_shortener(vid_url))
                         await ctx.send(embed=embed)
 
+                    elif my_dict.get(int(msg)) == "720":
+                        exception720 = response['diffConverter']
+                        embed = await embed_maker(link=await url_shortener(exception720))
+                        await message.delete()
+                        await ctx.send(embed=embed)
+
+                    else:
+                        await message.delete()
+                        await ctx.send("Invalid index given.")
+
                 elif choice == '2':
-                    audio_link = response['mp3Converter']
-                    shortened_link = await url_shortener(audio_link)
-                    embed = discord.Embed(description=f'**Download link of the audio you searched for: {shortened_link}**', color=color())
-                    await message.delete()
-                    await ctx.send(embed=embed)
+                    try:
+                        audio_link = response['mp3Converter']
+                        shortened_link = await url_shortener(audio_link)
+                        embed = discord.Embed(description=f'**Download link of the audio you searched for: {shortened_link}**', color=color())
+                        await message.delete()
+                        await ctx.send(embed=embed)
+                    except:
+                        embed = discord.Embed(description="The video couldn't be converted to an audio file for some reason.")
+                        await message.delete()
+                        await ctx.send(embed=embed)
 
             except Exception as e:
                 await message.edit(content='Terminal dekh bc')
@@ -427,98 +443,99 @@ async def purge(ctx, amount:int=None):
 
 @bot.command()
 async def face(ctx, member:discord.Member=None):
-    def get_ctr():
-        c = conn.cursor()
-        c.execute("""SELECT Ctr FROM ctr""")
-        rep = c.fetchone()
-        return rep[-1]
-
-    def update_ctr(num):
-        if num == +1:
-            new_ctr = get_ctr() + 1
-
-        elif num == -1:
-            new_ctr = get_ctr() -1
-
-        c = conn.cursor()
-        c.execute("""UPDATE ctr SET Ctr = ?""", [new_ctr])
-        conn.commit()
-
-    if ctx.guild.id == my_server_id:
-        member_id = member.id
-        # while True:
-        data = fetch_face(member.id)
-        with open('temp.jpg', 'wb') as f:
-            f.write(data[0])
-        file = discord.File('temp.jpg')
-        embed = discord.Embed(description=f"Here's {member.mention}", colour=color())
-        embed.set_image(url="attachments://temp.jpg")
-        message = await ctx.send(embed=embed, file=file)
-        await message.add_reaction('⬅️')
-        await message.add_reaction('➡️')
-        def check(reaction, user):
-            if reaction.message == message and user == ctx.author:
-                if user.id != winsy_id:
-                    ctr = 0
-                    response_dict = fetch_face(member_id)
-                    # ctr = get_ctr()
-                    if reaction.emoji == '➡️':
-                        if ctr < response_dict['length']:
-                            write_pic(response_dict.get(ctr))
-                            file = discord.File('temp.jpg')
-                            # await message.edit(file=file)
-                            ctr += 1
-                            # update_ctr(+1)
-
-                    elif reaction.emoji == '⬅️':
-                        if ctr > 0:
-                            write_pic(response_dict.get(ctr))
-                            file = discord.Embed('temp.jpg')
-                            # await message.edit(file=file)
-                            ctr -= 1
-                            # update_ctr(-1)
-
-            return False
-        try:
-            reaction = await bot.wait_for('reaction_add', check=check, timeout=120)
-
-        except asyncio.TimeoutError:
-            await message.delete()
-    else:
-        await ctx.send("This is command can't be used in this server")
 
     # if ctx.guild.id == my_server_id:
-    #     print(f'{ctx.author} used command "face" in channel {ctx.channel}')
-    #     pics = await fetch_face(member.id)
-    #     if pics == False:
-    #         await ctx.send("No data for the mentioned user in Database")
-    #     else:
-    #         choice = random.choice(pics)
-    #         with open('rickroll.txt', 'r') as f:
-    #             rick = f.read()
-    #         if str(choice) == rick:
-    #             with open('temp.gif', 'wb') as file:
-    #                 file.write(choice)
-    #             file = discord.File('temp.gif')
-    #             embed = discord.Embed(title="You've been RICKROLLED!", colour=color())
-    #             embed.set_image(url='attachment://temp.gif')
-    #             embed.set_footer(text="Used from cog")
-    #             message = await ctx.send(file=file, embed=embed)
-    #             await message.add_reaction(":arrow_left:")
-    #             await message.add_reaction(":arrow_right:")
-    #         else:
-    #             with open('temp.jpg', 'wb') as file:
-    #                 file.write(choice)
-    #             file = discord.File("temp.jpg")
-    #             embed = discord.Embed(description=f"Here's {member.mention}", colour=color())
-    #             embed.set_image(url="attachment://temp.jpg")
-    #             embed.set_footer(text="Used from cog")
-    #             message = await ctx.send(file=file, embed=embed)
+    #     member_id = member.id
+    #     global data
+    #     global ctr
+    #     ctr = 0
+    #     # while True:
+    #     data = fetch_face(member.id)
+    #     for x in data:
+    #         print(x)
+    #     with open('temp.jpg', 'wb') as f:
+    #         f.write(data[0])
+    #     file = discord.File('temp.jpg')
+    #     embed = discord.Embed(description=f"Here's {member.mention}", colour=color())
+    #     embed.set_image(url="attachment://temp.jpg")
+    #     global message
+    #     message = await ctx.send(embed=embed, file=file)
+    #     await message.add_reaction('⬅️')
+    #     await message.add_reaction('➡️')
+    #     async def message_editor(fts):
+    #         print("Ghus gaye andar")
+    #         embed = discord.Embed(description="Gaand", color=color())
+    #         embed.set_image(url="attachment://temp.jpg")
+    #         await message.edit(content="lol", embed=embed,file=fts)
+    #     def check(reaction, user):
+    #         global ctr
+    #         global data
+    #         if reaction.message == message and user.id == ctx.author.id:
+    #                 response_dict = fetch_face(member_id)
+    #                 # ctr = get_ctr()
+    #                 if str(reaction.emoji) == '➡️':
+    #                     # if ctr < response_dict['length']:
+    #                         ctr += 1
+    #                         print(ctr)
+    #                         # write_pic(data[ctr])
+    #                         print(data.keys())
+    #                         with open('temp.jpg', 'wb') as f:
+    #                             f.write(data[1])
+    #                         file = discord.File('./temp.jpg')
+    #                         asyncio.run_coroutine_threadsafe(message_editor(fts=file), bot.loop)
+    #                         # update_ctr(+1)
+
+    #                 elif reaction.emoji == '⬅️':
+    #                     if ctr > 0:
+    #                         ctr -= 1
+    #                         write_pic(response_dict.get(ctr))
+    #                         file = discord.Embed('./temp.jpg')
+    #                         asyncio.run_coroutine_threadsafe(message.edit(file=file), bot.loop)
+                            
+    #                         # update_ctr(-1)
+
+    #         return False
+    #     try:
+    #         while True:
+    #             reaction = await bot.wait_for('reaction_add', check=check, timeout=120)
+
+    #     except asyncio.TimeoutError:
+    #         await message.delete()
     # else:
-    #     file = discord.File("temp.gif")
-    #     embed = discord.Embed(title="You've been RICKROLLED!", color = color())
-    #     embed.set_image(url="attachment://temp.gif")
-    #     await ctx.send(file=file, embed=embed)
+    #     await ctx.send("This is command can't be used in this server")
+
+    if ctx.guild.id == my_server_id:
+        print(f'{ctx.author} used command "face" in channel {ctx.channel}')
+        pics = fetch_face(member.id)
+        if pics == False:
+            await ctx.send("No data for the mentioned user in Database")
+        else:
+            choice = random.choice(pics)
+            with open('rickroll.txt', 'r') as f:
+                rick = f.read()
+            if str(choice) == rick:
+                with open('temp.gif', 'wb') as file:
+                    file.write(choice)
+                file = discord.File('temp.gif')
+                embed = discord.Embed(title="You've been RICKROLLED!", colour=color())
+                embed.set_image(url='attachment://temp.gif')
+                embed.set_footer(text="Used from cog")
+                message = await ctx.send(file=file, embed=embed)
+                await message.add_reaction(":arrow_left:")
+                await message.add_reaction(":arrow_right:")
+            else:
+                with open('temp.jpg', 'wb') as file:
+                    file.write(choice)
+                file = discord.File("temp.jpg")
+                embed = discord.Embed(description=f"Here's {member.mention}", colour=color())
+                embed.set_image(url="attachment://temp.jpg")
+                embed.set_footer(text="Used from cog")
+                message = await ctx.send(file=file, embed=embed)
+    else:
+        file = discord.File("temp.gif")
+        embed = discord.Embed(title="You've been RICKROLLED!", color = color())
+        embed.set_image(url="attachment://temp.gif")
+        await ctx.send(file=file, embed=embed)
 
 @bot.command()
 async def allfaces(ctx, member:discord.Member=None):
