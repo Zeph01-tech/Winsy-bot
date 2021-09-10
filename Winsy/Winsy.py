@@ -59,39 +59,41 @@ async def fetch_roasts(member_id, author_id):
     dict = {"roasts" : roasts, "type" : type}
     return dict
 
-def fetch_face(member_id):
-    # def dict_maker(length, pics):
-    #     dict = {}
-    #     ctr = 0
-    #     for i in range(length):
-    #         dict.update({ctr : pics[ctr]})
-    #         ctr += 1
+# def fetch_face(member_id):
+#     def dict_maker(length, pics):
+#         dict = {}
+#         ctr = 0
+#         for i in range(length):
+#             dict.update({ctr : pics[ctr]})
+#             ctr += 1
 
-    #     dict.update({'length' : length})
-    #     return dict
+#         dict.update({'length' : length})
+#         return dict
 
-    # repo_dict = {}
+#     repo_dict = {}
+#     cursor = conn.cursor()
+#     cursor.execute("""SELECT * FROM faces WHERE user_id = ?""", [member_id])
+#     response = cursor.fetchall()
+#     length = len(response)
+#     pic_list = []
+#     for tuple in response:
+#         pic_list.append(tuple[1])
+
+#     repo_dict.update(dict_maker(length, pic_list))
+#     return repo_dict
+
+
     # cursor = conn.cursor()
     # cursor.execute("""SELECT * FROM faces WHERE user_id = ?""", [member_id])
     # response = cursor.fetchall()
-    # length = len(response)
-    # pic_list = []
-    # for tuple in response:
-    #     pic_list.append(tuple[1])
+    # pics_byte = []
+    # if len(response) != 0:
+    #     for elms in response:
+    #         pics_byte.append(elms[1])
+    #     return pics_byte
 
-    # repo_dict.update(dict_maker(length, pic_list))
-    # return repo_dict
-    cursor = conn.cursor()
-    cursor.execute("""SELECT * FROM faces WHERE user_id = ?""", [member_id])
-    response = cursor.fetchall()
-    pics_byte = []
-    if len(response) != 0:
-        for elms in response:
-            pics_byte.append(elms[1])
-        return pics_byte
-
-    else:
-        return False
+    # else:
+    #     return False
 
 def write_pic(bytes):
     with open('temp.jpg', 'wb') as f:
@@ -226,6 +228,9 @@ async def poop(ctx, at=None, member:discord.Member=None):
     else:
         return
 
+@bot.command()
+async def ping(ctx):
+    await ctx.send(f"Pong! {round(bot.latency*1000, 1)}ms")
 @bot.command()
 async def reel(ctx, url:str=None):
     if url == None:
@@ -441,138 +446,78 @@ async def purge(ctx, amount:int=None):
     else:
         await ctx.channel.purge(limit=amount+1)
 
-@bot.command()
-async def face(ctx, member:discord.Member=None):
+# @bot.command()
+# async def face(ctx, member:discord.Member=None):
 
     # if ctx.guild.id == my_server_id:
-    #     member_id = member.id
-    #     global data
-    #     global ctr
-    #     ctr = 0
-    #     # while True:
-    #     data = fetch_face(member.id)
-    #     for x in data:
-    #         print(x)
-    #     with open('temp.jpg', 'wb') as f:
-    #         f.write(data[0])
-    #     file = discord.File('temp.jpg')
-    #     embed = discord.Embed(description=f"Here's {member.mention}", colour=color())
-    #     embed.set_image(url="attachment://temp.jpg")
-    #     global message
-    #     message = await ctx.send(embed=embed, file=file)
-    #     await message.add_reaction('⬅️')
-    #     await message.add_reaction('➡️')
-    #     async def message_editor(fts):
-    #         print("Ghus gaye andar")
-    #         embed = discord.Embed(description="Gaand", color=color())
-    #         embed.set_image(url="attachment://temp.jpg")
-    #         await message.edit(content="lol", embed=embed,file=fts)
-    #     def check(reaction, user):
-    #         global ctr
-    #         global data
-    #         if reaction.message == message and user.id == ctx.author.id:
-    #                 response_dict = fetch_face(member_id)
-    #                 # ctr = get_ctr()
-    #                 if str(reaction.emoji) == '➡️':
-    #                     # if ctr < response_dict['length']:
-    #                         ctr += 1
-    #                         print(ctr)
-    #                         # write_pic(data[ctr])
-    #                         print(data.keys())
-    #                         with open('temp.jpg', 'wb') as f:
-    #                             f.write(data[1])
-    #                         file = discord.File('./temp.jpg')
-    #                         asyncio.run_coroutine_threadsafe(message_editor(fts=file), bot.loop)
-    #                         # update_ctr(+1)
-
-    #                 elif reaction.emoji == '⬅️':
-    #                     if ctr > 0:
-    #                         ctr -= 1
-    #                         write_pic(response_dict.get(ctr))
-    #                         file = discord.Embed('./temp.jpg')
-    #                         asyncio.run_coroutine_threadsafe(message.edit(file=file), bot.loop)
-                            
-    #                         # update_ctr(-1)
-
-    #         return False
-    #     try:
-    #         while True:
-    #             reaction = await bot.wait_for('reaction_add', check=check, timeout=120)
-
-    #     except asyncio.TimeoutError:
-    #         await message.delete()
+    #     print(f'{ctx.author} used command "face" in channel {ctx.channel}')
+    #     pics = fetch_face(member.id)
+    #     if pics == False:
+    #         await ctx.send("No data for the mentioned user in Database")
+    #     else:
+    #         choice = random.choice(pics)
+    #         with open('rickroll.txt', 'r') as f:
+    #             rick = f.read()
+    #         if str(choice) == rick:
+    #             with open('temp.gif', 'wb') as file:
+    #                 file.write(choice)
+    #             file = discord.File('temp.gif')
+    #             embed = discord.Embed(title="You've been RICKROLLED!", colour=color())
+    #             embed.set_image(url='attachment://temp.gif')
+    #             embed.set_footer(text="Used from cog")
+    #             message = await ctx.send(file=file, embed=embed)
+    #             await message.add_reaction(":arrow_left:")
+    #             await message.add_reaction(":arrow_right:")
+    #         else:
+    #             with open('temp.jpg', 'wb') as file:
+    #                 file.write(choice)
+    #             file = discord.File("temp.jpg")
+    #             embed = discord.Embed(description=f"Here's {member.mention}", colour=color())
+    #             embed.set_image(url="attachment://temp.jpg")
+    #             embed.set_footer(text="Used from cog")
+    #             message = await ctx.send(file=file, embed=embed)
     # else:
-    #     await ctx.send("This is command can't be used in this server")
+    #     file = discord.File("temp.gif")
+    #     embed = discord.Embed(title="You've been RICKROLLED!", color = color())
+    #     embed.set_image(url="attachment://temp.gif")
+    #     await ctx.send(file=file, embed=embed)
 
-    if ctx.guild.id == my_server_id:
-        print(f'{ctx.author} used command "face" in channel {ctx.channel}')
-        pics = fetch_face(member.id)
-        if pics == False:
-            await ctx.send("No data for the mentioned user in Database")
-        else:
-            choice = random.choice(pics)
-            with open('rickroll.txt', 'r') as f:
-                rick = f.read()
-            if str(choice) == rick:
-                with open('temp.gif', 'wb') as file:
-                    file.write(choice)
-                file = discord.File('temp.gif')
-                embed = discord.Embed(title="You've been RICKROLLED!", colour=color())
-                embed.set_image(url='attachment://temp.gif')
-                embed.set_footer(text="Used from cog")
-                message = await ctx.send(file=file, embed=embed)
-                await message.add_reaction(":arrow_left:")
-                await message.add_reaction(":arrow_right:")
-            else:
-                with open('temp.jpg', 'wb') as file:
-                    file.write(choice)
-                file = discord.File("temp.jpg")
-                embed = discord.Embed(description=f"Here's {member.mention}", colour=color())
-                embed.set_image(url="attachment://temp.jpg")
-                embed.set_footer(text="Used from cog")
-                message = await ctx.send(file=file, embed=embed)
-    else:
-        file = discord.File("temp.gif")
-        embed = discord.Embed(title="You've been RICKROLLED!", color = color())
-        embed.set_image(url="attachment://temp.gif")
-        await ctx.send(file=file, embed=embed)
+# @bot.command()
+# async def allfaces(ctx, member:discord.Member=None):
+#     if ctx.guild.id == my_server_id:
 
-@bot.command()
-async def allfaces(ctx, member:discord.Member=None):
-    if ctx.guild.id == my_server_id:
+#         with open('temp.gif', 'rb') as f:
+#             rick_roll = f.read()
 
-        with open('temp.gif', 'rb') as f:
-            rick_roll = f.read()
-
-        if member is None:
-            list = await fetch_face(ctx.author.id)
-            for pic in list:
-                if pic == rick_roll:
-                    continue
+#         if member is None:
+#             list = await fetch_face(ctx.author.id)
+#             for pic in list:
+#                 if pic == rick_roll:
+#                     continue
         
-                else:
-                    with open('temp.jpg', 'wb') as f:
-                        f.write(pic)
+#                 else:
+#                     with open('temp.jpg', 'wb') as f:
+#                         f.write(pic)
 
-                file = discord.File('temp.jpg')
-                await ctx.send(file=file, delete_after=15)
+#                 file = discord.File('temp.jpg')
+#                 await ctx.send(file=file, delete_after=15)
 
-        else:
-            list = await fetch_face(member.id)
-            for pic in list:
+#         else:
+#             list = await fetch_face(member.id)
+#             for pic in list:
 
-                if pic == rick_roll:
-                    continue
+#                 if pic == rick_roll:
+#                     continue
 
-                else:
-                    with open('temp.jpg', 'wb') as f:
-                        f.write(pic)
+#                 else:
+#                     with open('temp.jpg', 'wb') as f:
+#                         f.write(pic)
 
-                file = discord.File('temp.jpg')
-                await ctx.send(file=file, delete_after=15)
+#                 file = discord.File('temp.jpg')
+#                 await ctx.send(file=file, delete_after=15)
 
-    else:
-        await ctx.send("This command can't be used in this server.")
+#     else:
+#         await ctx.send("This command can't be used in this server.")
 
 @bot.command()
 async def rgr(ctx):
