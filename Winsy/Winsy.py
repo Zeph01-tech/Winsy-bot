@@ -8,7 +8,7 @@ from discord.ext import commands
 from discord.ext.commands import has_permissions
 import asyncio
 
-bot = commands.Bot(command_prefix=commands.when_mentioned_or("Winsy ", "winsy"))
+bot = commands.Bot(command_prefix=commands.when_mentioned_or("Winsy ", "winsy "))
 bot.remove_command('help')
 
 conn = sqlite3.connect("Winsy.db")
@@ -233,6 +233,10 @@ async def reel(ctx, url:str=None):
 
 @bot.command()
 async def yt(ctx, url:str=None):
+    # api = "https://yt1s.com/api/ajaxSearch/index"
+    # data = {'q' : url, 'vt' : 'home'}
+    # response = requests.post(api, data=data).json()
+    # print(response)
     async def dict_maker(list):
         dict = {}
         ctr = 1
