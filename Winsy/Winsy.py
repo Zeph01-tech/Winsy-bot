@@ -282,7 +282,7 @@ async def yt(ctx, url:str=None):
 
                 except asyncio.TimeoutError:
                     await message.delete()
-                    await ctx.send('You failed to repond within time.')
+                    await ctx.send('You failed to respond within time.')
                     return
                 
                 try:
