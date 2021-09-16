@@ -8,7 +8,7 @@ from discord.ext import commands
 from discord.ext.commands import has_permissions
 import asyncio
 
-bot = commands.Bot(command_prefix=commands.when_mentioned_or("Winsy ", "winsy "))
+bot = commands.Bot(command_prefix=commands.when_mentioned_or("T ", "t "))
 bot.remove_command('help')
 
 conn = sqlite3.connect("Winsy.db")
@@ -25,6 +25,8 @@ hemant_id = 852642856866414622
 
 my_server_id = 762380604058632222
 prosaber_server_id = 770130068172832798
+
+error_channel_id = 887385480679788574
 
 bro_fist_replies = ["**Yesss boss!**", "**BRO FIST!!!**", "**Zhong Zhong**"]
 good_night_replies = ["**Oyasumi!**", "**Night!**", "**Have a great night**", "**Sweet dreams**"]
@@ -64,27 +66,24 @@ def write_pic(bytes):
         f.write(bytes)
         f.close()
 
-async def embed_maker(arr=None, link=None):
-    if arr != None:
-        index = 1
-        ctr = 0
+async def embed_maker(dict=None, link=None):
+    if dict != None:
         dialouge = "**All the available qualities, send an index of the quality you want.**"
         quality_dialouge = ""
-        for i in range(len(arr)):
-            quality_dialouge += f'\n {index}. {arr[ctr]}'
-            ctr += 1
-            index += 1
+        for key in dict:
+            quality_dialouge += f"\n*{key}*. {dict[key]['quality']} ({dict[key]['size']})"
         
         embed = discord.Embed(description=dialouge+quality_dialouge, color=color())
 
     elif link != None:
         embed = discord.Embed(description=f'**Download link of the video you searched for: {link}**', color=color())
+
     return embed
 
 def edit_msg(message, file):
     asyncio.run(message.edit(file=file))
 
-async def url_shortener(url):
+async def shorten_url(url):
     token = 'c2fe6b80d67ad910a7cee6a6698d36a50575d307'
 
     conn = bitly_api.Connection(access_token=token)
@@ -99,7 +98,6 @@ async def on_ready():
 
 @bot.command()
 async def help(ctx, *, category = None):
-    print(f'{ctx.author} used the command "help" in channel "{ctx.channel}"')
     if category is None:
         embed = discord.Embed(title="***Help panel***", description="List of categories of all commands", color=color())
         embed.add_field(name="*mention commands :nerd:*", value="`winsy help mention cmds`", inline=False)
@@ -120,8 +118,8 @@ async def help(ctx, *, category = None):
     
     elif category == "image cmds":
         embed = discord.Embed(title="***Image commands***", description="All the image commands.", color=color())
-        embed.add_field(name="`face <user mention>`", value="*Sends the face of the mentioned user if it is present in database*", inline=False)
-        embed.add_field(name="`allfaces`", value="*Sends all the registered faces of user*", inline=False)
+        embed.add_field(name="`face <user mention>`", value="*Sends the face of the mentioned user if it is present in database(currently unavailable)*", inline=False)
+        embed.add_field(name="`allfaces`", value="*Sends all the registered faces of user(currently unavailable)*", inline=False)
         await ctx.send(embed=embed)
         await ctx.message.delete()
 
@@ -221,7 +219,7 @@ async def reel(ctx, url:str=None):
 
             try:
                 vid_url = response['video']
-                embed = await embed_maker(link=await url_shortener(vid_url[-1]))
+                embed = await embed_maker(link=await shorten_url(vid_url[-1]))
                 await message.delete()
                 await ctx.send(embed=embed)
             except:
@@ -233,148 +231,121 @@ async def reel(ctx, url:str=None):
 
 @bot.command()
 async def yt(ctx, url:str=None):
-    # api = "https://yt1s.com/api/ajaxSearch/index"
-    # data = {'q' : url, 'vt' : 'home'}
-    # response = requests.post(api, data=data).json()
-    # print(response)
-    async def dict_maker(list):
-        dict = {}
-        ctr = 1
-        for quality in list:
-            new_dict_value = {ctr : quality}
-            dict.update(new_dict_value)
-            ctr += 1
-        return dict
 
-    if url == None:
-        await ctx.send('Give a URL of the video you want to download')
+    def vid_dict_maker(vids_dict):
+        new_dict = {}
+        index = 1
+        for key in vids_dict:
+            in_dict = vids_dict[key]
+            if in_dict['q'] != 'auto':
+                value = {index :{'quality': in_dict['q'], 'size' : in_dict['size'], 'url' : in_dict['k']}}
+                new_dict.update(value)
+                index += 1
+
+        return new_dict
+
+    def fetch_key(dict):
+        for i in dict:
+            return i
+
+    if url is None:
+        await ctx.send("Give a URL of the video you want to download.")
 
     else:
-        message = await ctx.send('Checking the URL')
-        if url.startswith('https://youtu.be/') == False:
-            await message.edit(content='The URL which was specified was either not a video or an unexpected URL.')
-        
+        message = await ctx.send('Checking the URL...')
+        if url.startswith('https://youtu.be/') == False and url.startswith('https://youtube.com/shorts/') == False:
+            await message.edit(content='Invalid url for this command.')
+            return
+
         else:
-            await message.edit(content='Processing your yt video, this may take some time.....')
+            await message.edit(content='Fetching all the available formats of the video....')
+
+        try:
+            api = "https://yt1s.com/api/ajaxSearch/index"
+            data = {'q' : url, 'vt' : 'home'}
+            response = requests.post(api, data=data).json()
+            audios_key_dict = response['links']['mp3']
+            audios_dict = audios_key_dict[fetch_key(audios_key_dict)]
+            vid_id = response['vid']
+            videos_dict = vid_dict_maker(response['links']['mp4'])
+            embed = discord.Embed(description='In which format do you want to download the file:\n **1.** *Mp4(Video)*\n**2.** *Mp3(Audio)*')
+            await message.edit(embed=embed, content="")
+            def check1(m):
+                return m.author.id == ctx.author.id and m.channel == ctx.message.channel
+
             try:
-                api = 'https://onlinevideoconverter.pro/api/convert'
-                data = {'url' : url}
-                response = requests.post(api, data=data).json()
-                in_url = response['url']
-                available_video_qualities = []
-                for dict in response['url']:
-                    quality = dict['quality']
-                    name = dict['name']
-                    if name == 'MP4':
-                        if dict['no_audio'] == False:
-                            if quality not in available_video_qualities and str(quality).endswith('0'):
-                                    available_video_qualities.append(quality)
+                format_req = await bot.wait_for('message', check=check1, timeout=10)
+                choice = format_req.content
 
-                embed1 = discord.Embed(description='In which format do you want to download the file:\n **1.** *Mp4(Video)*\n**2.** *Mp3(Audio)*')
-                await message.edit(embed=embed1, content="")
-                def check1(m):
-                    return m.author == ctx.author and m.channel == ctx.message.channel
-                    
-                try:
-                    format_req = await bot.wait_for('message', check=check1, timeout=10)
-                    choice = format_req.content
-                    await format_req.delete()
+            except asyncio.TimeoutError:
+                await message.delete()
+                await ctx.send('You failed to respond in time')
+                return
 
-                except asyncio.TimeoutError:
-                    await message.delete()
-                    await ctx.send('You failed to respond within time.')
-                    return
-                
-                try:
-                    int(choice)
-                    if choice != '1' and choice != '2':
-                        await message.delete()
-                        await ctx.send('Invalid index given.')
-                        return
+            try:
+                int(choice)
 
-                except:
-                    await message.delete()
-                    await ctx.send("Bro I'm asking for indexes here.")
-                    return
+            except:
+                await ctx.send("Bro I'm asking for indexes here")
+                return
 
+            if choice != '1' and choice != '2':
+                await message.delete()
+                await ctx.send("Invalid index given")
+
+            else:
                 if choice == '1':
-                    if "720" in response["video_quality"] and "720" not in available_video_qualities:
-                        available_video_qualities.append("720")
-
-                    embed2 = await embed_maker(arr=available_video_qualities)
-                    await message.edit(embed=embed2, content="")
-
+                    embed = await embed_maker(dict=videos_dict)
+                    await format_req.delete()
+                    await message.edit(embed=embed, content="")
                     def check2(m):
-                        return m.author == ctx.author and m.channel == ctx.message.channel
+                        return m.author.id == ctx.author.id and m.channel == ctx.message.channel
 
                     try:
                         quality_req = await bot.wait_for('message', check=check2, timeout=10)
-                        msg = quality_req.content
-                        await quality_req.delete()
-
+                        
                     except asyncio.TimeoutError:
                         await message.delete()
-                        await ctx.send('You failed to respond within time.')
+                        await ctx.send('You failed to respond in time')
                         return
-                    try:
-                        int(msg)
 
+                    try:
+                        index = int(quality_req.content)
                     except:
                         await message.delete()
                         await ctx.send("Bro I'm asking for indexes here.")
                         return
-
-                    my_dict = await dict_maker(available_video_qualities)
-                    in_url = response['url']
-                    flag = False
-                    for index in range(len(in_url)):
-                        in_index = in_url[index]
-                        quality = in_index['quality']
-                        if quality == my_dict.get(int(msg)) and in_index['name'] == 'MP4':
-                            if in_index['no_audio'] == False:
-                                correct_index = index
-                                flag = True
-                                break
-                            else:
-                                continue
-
-                    if flag == True:
-                        inside_index = in_url[correct_index]
-                        vid_url = inside_index['url']
-                        await message.delete()
-                        embed = await embed_maker(link=await url_shortener(vid_url))
-                        await ctx.send(embed=embed)
-
-                    elif my_dict.get(int(msg)) == "720":
-                        exception720 = response['diffConverter']
-                        embed = await embed_maker(link=await url_shortener(exception720))
-                        await message.delete()
-                        await ctx.send(embed=embed)
+                    
+                    if index not in videos_dict:
+                        await ctx.send('Invalid index given')
 
                     else:
                         await message.delete()
-                        await ctx.send("Invalid index given.")
+                        await quality_req.delete()
+                        message_ = await ctx.send('Processing your yt video with the desired quality...')
+                        req_url = videos_dict[index]['url']
+                        data = {'vid' : vid_id, 'k' : req_url}
+                        api = "https://yt1s.com/api/ajaxConvert/convert"
+                        response = requests.post(api, data=data).json()
+                        d_link = await shorten_url(response['dlink'])
+                        embed = await embed_maker(link=d_link)
+                        await message_.delete()
+                        await ctx.send(embed=embed)
 
                 elif choice == '2':
-                    try:
-                        audio_link = response['mp3Converter']
-                        shortened_link = await url_shortener(audio_link)
-                        embed = discord.Embed(description=f'**Download link of the audio you searched for: {shortened_link}**', color=color())
-                        await message.delete()
-                        await ctx.send(embed=embed)
-                    except:
-                        embed = discord.Embed(description="The video couldn't be converted to an audio file for some reason.")
-                        await message.delete()
-                        await ctx.send(embed=embed)
-
-            except Exception as e:
-                await message.edit(content='Terminal dekh bc')
-                print(e)
+                    await format_req.delete()
+                    api = "https://yt1s.com/api/ajaxConvert/convert"
+                    data = {'vid' : vid_id, 'k' : audios_dict['k']}
+                    response = requests.post(api, data=data).json()
+                    d_link = shorten_url(response['dlink'])
+                    embed = await embed_maker(link=d_link)
+                    await ctx.send(embed=embed)
+        except:
+            await message.edit('Seems the like servers are down')
 
 @commands.cooldown(1, 30, commands.BucketType.user)
 @bot.command()
 async def spam(ctx, times=None, member:discord.Member=None, *, message=None):
-    print(f'{ctx.author} used command "spam" in {ctx.channel}')
     try:
         int(times)
         if message is None:
@@ -414,34 +385,6 @@ async def purge(ctx, amount:int=None):
         await ctx.send("Mention the amount of messages you want to purge")
     else:
         await ctx.channel.purge(limit=amount+1)
-
-@bot.command()
-async def rgr(ctx):
-    def reacted_user_maker(list):
-        ctr = 0
-        response = "These are the reacted users: "
-        for i in range(len(list)):
-            response += f"\n{list[ctr]}"
-        return response
-
-    list = []
-    message = await ctx.send("React for registration.")
-    await message.add_reaction('✅')
-    def check(reaction, user):
-        if reaction.message == message:
-            if reaction.emoji == '✅' and user.id != winsy_id:
-                list.append(user)
-
-        return False
-
-    try:
-        reaction = await bot.wait_for('reaction_add', check=check, timeout=6)
-        await ctx.send("Check true ho gaya bc")
-
-    except asyncio.TimeoutError:
-        await ctx.send("Registration closed.")
-        response = reacted_user_maker(list)
-        await ctx.send(response)
 
 @bot.command()
 async def laugh(ctx, at, member:discord.Member=None):
@@ -512,7 +455,6 @@ async def gae(ctx, member:discord.Member=None):
 
 @bot.command()
 async def roast(ctx, member:discord.Member=None):
-    print(f'{ctx.author} used the command "roast" in {ctx.channel}')
     if member == None:
         await ctx.send("You need to mention a user to roast")
     else:
@@ -536,6 +478,12 @@ async def why(ctx, insult=None, member:discord.Member=None):
     
     else:
         return
+
+# @bot.event
+# async def on_command_error(ctx, error):
+#     channel = bot.get_channel(error_channel_id)
+#     embed = discord.Embed(title='Error raised in '+str(ctx.command), description=error, color=color())
+#     await channel.send(embed=embed)
 
 all_cogs = os.listdir('./Winsy/cogs')
 for file in all_cogs:
