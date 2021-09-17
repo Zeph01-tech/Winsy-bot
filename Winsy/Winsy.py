@@ -80,6 +80,10 @@ async def embed_maker(dict=None, link=None):
 
     return embed
 
+def non_dm_embed():
+    embed = discord.Embed(title='Note.', description="Commands can't be used through dms.", color=color())
+    return embed
+
 def edit_msg(message, file):
     asyncio.run(message.edit(file=file))
 
@@ -140,22 +144,9 @@ async def help(ctx, *, category = None):
 
 @bot.command()
 async def test(ctx):
-    message = await ctx.send('React on this')
-    await message.add_reaction('✅')
-    def check(reaction, user):
-        if user == ctx.author:
-            if reaction.emoji == '✅':
-                return True
-            elif reaction.emoji == '❌':
-                return 'X'
-
-    while True:
-        reaction = await bot.wait_for('reaction_add', check=check, timeout=None)
-        if reaction == True:
-            await message.edit(content="You reacted with ✅")
-        elif reaction == 'X':
-            await message.edit(content='Gaand it ended')
-            break
+    await ctx.send(f'This is a {type(ctx.channel)}')
+    print(dir(ctx.channel))
+    print()
 
 @commands.cooldown(1, 60, commands.BucketType.member)
 @bot.command()
