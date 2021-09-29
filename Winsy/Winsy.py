@@ -8,7 +8,7 @@ from discord.ext import commands
 from discord.ext.commands import has_permissions
 import asyncio
 
-bot = commands.Bot(command_prefix=commands.when_mentioned_or("t ", "T "))
+bot = commands.Bot(command_prefix=commands.when_mentioned_or("winsy ", "Winsy "))
 bot.remove_command('help')
 
 conn = sqlite3.connect("Winsy.db")
@@ -38,17 +38,15 @@ def color():
     colors = [0xFF355E,0xFD5B78,0xFF6037,0xFF9966,0xFF9933,0xFFCC33,0xFFFF66,0xFFFF66,0xCCFF00,0x66FF66,0xAAF0D1,0x50BFE6,0xFF6EFF,0xEE34D2,0xFF00CC,0xFF00CC,0xFF3855,0xFD3A4A,0xFB4D46,0xFA5B3D,0xFFAA1D,0xFFF700,0x299617,0xA7F432,0x2243B6,0x5DADEC,0x5946B2,0x9C51B6,0xA83731,0xAF6E4D,0xBFAFB2,0xFF5470,0xFFDB00,0xFF7A00,0xFDFF00,0x87FF2A,0x0048BA,0xFF007C,0xE936A7]    
     return random.choice(colors)
 
+def get_emoji(id):
+    for emoji in my_guild.emojis:
+        if emoji.id == id:
+            break
+    return emoji
+
 async def fetch_roasts(member_id, author_id):
     if member_id == my_id:
         type = 'Yash victim'
-    
-    elif member_id == winsy_id:
-        if author_id == my_id:
-            type = 'Winsy victim, Yash roaster'
-
-        else:
-            type = 'Winsy victim'
-
     else:
         type = 'Normal'
 
@@ -73,7 +71,9 @@ async def embed_maker(dict=None, link=None):
     elif link != None:
         choice = link[-5:] 
         link = link[0:-5]
-        embed = discord.Embed(description=f'**Download link of the {choice} you searched for: {link}**', color=color())
+        emoji2 = get_emoji(774306825708765184)
+        embed = discord.Embed(description=f'**URL of the {choice} you searched for {emoji2}: {link}**', color=color())
+        embed.set_footer(icon_url='https://cdn.discordapp.com/emojis/892776197887524935.png', text='Enjoy')
 
     return embed
 
@@ -91,15 +91,16 @@ async def shorten_url(url):
 
 @bot.event
 async def on_ready():
+    global my_guild
+    my_guild = await bot.fetch_guild(my_server_id)
     print("I'm logged in yay!")
     await bot.change_presence(activity=discord.Activity(type=discord.ActivityType.listening, name="winsy help"))
 
 @bot.command()
 async def help(ctx, *, category = None):
-    my_guild = await bot.fetch_guild(my_server_id)
-    sus_booty = await my_guild.fetch_emoji(892751786719469598)
-    booty = await my_guild.fetch_emoji(885592612692709406)
-    hyped = await my_guild.fetch_emoji(892750347599233034)
+    sus_booty = get_emoji(892751786719469598)
+    booty = get_emoji(885592612692709406)
+    hyped = get_emoji(892750347599233034)
     if category is None:
         embed = discord.Embed(title="***Help panel***", description="List of categories of all commands", color=color())
         embed.add_field(name=f"*mention commands {sus_booty}*", value="`winsy help 1`", inline=False)
@@ -120,8 +121,9 @@ async def help(ctx, *, category = None):
     elif category == "2":
         embed = discord.Embed(title="**Interactive commands**", description="All the commands to interact with the bot.", color=color())
         embed.add_field(name="`goodnight`", value="Possible aliases: `gn`, `oyasumi` *Winsy wishes goodnight*", inline=False)
-        embed.add_field(name="`laugh at <user mention>`", value="*Winsy laughs at the mentioned user*", inline=False)
+        embed.add_field(name="`laugh at <user>`", value="*Winsy laughs at the mentioned user*", inline=False)
         embed.add_field(name="`brofist`", value="*Winsy wishes **brofist***", inline=False)
+        embed.add_field(name="`why insult <user>`", value="*Winsy explains the reason to laugh at the <user>*", inline=False)
         await ctx.send(embed=embed)
         await ctx.message.delete()
 
@@ -134,12 +136,12 @@ async def help(ctx, *, category = None):
 
 @commands.cooldown(1, 60, commands.BucketType.member)
 @bot.command()
-async def poop(ctx, at=None, member:discord.Member=None):
+async def poop(ctx, at:str=None, member:discord.Member=None):
     if isinstance(ctx.channel, discord.channel.DMChannel):
         await ctx.send(embed=non_dm_embed())
 
     else:
-        if at == 'at' or at == 'At' or at == 'aT' or at == 'AT':
+        if at.lower() == 'at':
             if member is not None:
                 if member.id != my_id:
                     await member.send(":poo:")
@@ -184,15 +186,15 @@ async def insta(ctx, url:str=None):
 
     else:
         if url == None:
-            await ctx.send('Provide a URL.')
+            await ctx.send(f'Provide a URL {get_emoji(885592462599536701)}')
 
         else:
             message = await ctx.send('Checking the URL')
-            if url.startswith('https://www.instagram.com/') == False:
-                await message.edit(content='The URL which was specified was either not a reel or an unexpected URL.')
+            if url.startswith('https://www.instagram.com/p') == False and url.startswith('https://www.instagram.com/reels') == False:
+                await message.edit(content=f'The URL which was specified was either not a insta URL or an unexpected URL or maybe {get_emoji(774297843094782013)}')
 
             else:
-                await message.edit(content='Processing your request, this may take some time.....')
+                await message.edit(content=f'{get_emoji(892750347599233034)} Processing your request, this may take some time.....')
                 try:
                     api = 'https://dl.instavideosave.com/allinone'
 
@@ -217,7 +219,7 @@ async def insta(ctx, url:str=None):
                         await message.delete()
                         await ctx.send(embed=embed)
                     except:
-                        await message.edit(content="The post seems to be from a private account.")
+                        await message.edit(content=f"The post is either from a private account or invalid url {get_emoji(885592462599536701)}")
 
 @bot.command()
 async def yt(ctx, url:str=None):
@@ -477,24 +479,41 @@ async def roast(ctx, member:discord.Member=None):
     else:
         if member == None:
             await ctx.send("You need to mention a user to roast")
+
         else:
-            dict = await fetch_roasts(member.id, ctx.author.id)
-            roasts = dict.get('roasts')
-            type = dict.get('type')
-            choice = random.choice(roasts)
-            if type == 'Normal':
-                await ctx.send(f"{member.mention} {choice}")
+            if member.id == winsy_id:
+                kiralaugh = get_emoji(892772725343535104)
+                emoji = get_emoji(random.choice([890869939429314610, 892480880810020896, 892751786719469598, 885592612692709406]))
+                dialouge = ""
+                if emoji.id == 892751786719469598 or emoji.id == 885592612692709406:
+                    dialouge += random.choice(["Take this instead", "Not roast, take booty"])
+
+                elif emoji.id == 890869939429314610:
+                    await ctx.message.reply(f"{dialouge}{emoji}")
+                    await asyncio.sleep(2)
+                    await ctx.send(f"{kiralaugh}")
+                    return
+
+                await ctx.message.reply(f"{dialouge}{emoji}")
 
             else:
-                await ctx.send(choice)
+                dict = await fetch_roasts(member.id, ctx.author.id)
+                roasts = dict.get('roasts')
+                type = dict.get('type')
+                roast_choice = random.choice(roasts)
+                if type == 'Normal':
+                    await ctx.send(f"{member.mention} {roast_choice}")
+
+                else:
+                    await ctx.send(roast_choice)
 
 @bot.command()
-async def why(ctx, insult=None, member:discord.Member=None):
+async def why(ctx, insult:str=None, member:discord.Member=None):
     if isinstance(ctx.channel, discord.channel.DMChannel):
         await ctx.send(embed=non_dm_embed())
         
     else:
-        if insult == 'insult':
+        if insult.lower() == 'insult':
             if member is not None:
                 await ctx.send(f"{member.mention} I'm not insulting you. I'm describing you.")
             else:
@@ -503,11 +522,11 @@ async def why(ctx, insult=None, member:discord.Member=None):
         else:
             return
 
-# @bot.event
-# async def on_command_error(ctx, error):
-#     channel = bot.get_channel(error_channel_id)
-#     embed = discord.Embed(title='Error raised in '+str(ctx.command), description=error, color=color())
-#     await channel.send(embed=embed)
+@bot.event
+async def on_command_error(ctx, error):
+    channel = bot.get_channel(error_channel_id)
+    embed = discord.Embed(title='Error raised in '+str(ctx.command), description=error, color=color())
+    await channel.send(embed=embed)
 
 all_cogs = os.listdir('./Winsy/cogs')
 for file in all_cogs:
