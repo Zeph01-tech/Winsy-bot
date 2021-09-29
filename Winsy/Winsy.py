@@ -183,40 +183,44 @@ async def ping(ctx):
 
 @bot.command()
 async def insta(ctx, url:str=None):
-    if url == None:
-        await ctx.send('Provide a URL.')
+    if isinstance(ctx.channel, discord.channel.DMChannel):
+        await ctx.send(non_dm_embed())
 
     else:
-        message = await ctx.send('Checking the URL')
-        if url.startswith('https://www.instagram.com/') == False:
-            await message.edit(content='The URL which was specified was either not a reel or an unexpected URL.')
+        if url == None:
+            await ctx.send('Provide a URL.')
 
         else:
-            await message.edit(content='Processing your request, this may take some time.....')
-            try:
-                api = 'https://dl.instavideosave.com/allinone'
+            message = await ctx.send('Checking the URL')
+            if url.startswith('https://www.instagram.com/') == False:
+                await message.edit(content='The URL which was specified was either not a reel or an unexpected URL.')
 
-                headers = {'url' : url}
-
-                response = requests.get(url=api, headers=headers).json()
-
-            except:
-                await message.edit(content="The request was not fullfilled for some reason.")
-                return
-
-            try:
-                post_url = response['video']
-                embed = await embed_maker(link=await shorten_url(post_url[-1])+'video')
-                await message.delete()
-                await ctx.send(embed=embed)
-            except:
+            else:
+                await message.edit(content='Processing your request, this may take some time.....')
                 try:
-                    post_url = response['image']
+                    api = 'https://dl.instavideosave.com/allinone'
+
+                    headers = {'url' : url}
+
+                    response = requests.get(url=api, headers=headers).json()
+
+                except:
+                    await message.edit(content="The request was not fullfilled for some reason.")
+                    return
+
+                try:
+                    post_url = response['video']
                     embed = await embed_maker(link=await shorten_url(post_url[-1])+'video')
                     await message.delete()
                     await ctx.send(embed=embed)
                 except:
-                    await message.edit(content="The post seems to be from a private account.")
+                    try:
+                        post_url = response['image']
+                        embed = await embed_maker(link=await shorten_url(post_url[-1])+'video')
+                        await message.delete()
+                        await ctx.send(embed=embed)
+                    except:
+                        await message.edit(content="The post seems to be from a private account.")
 
 @bot.command()
 async def yt(ctx, url:str=None):
