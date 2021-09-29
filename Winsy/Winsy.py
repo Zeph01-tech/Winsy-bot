@@ -8,7 +8,7 @@ from discord.ext import commands
 from discord.ext.commands import has_permissions
 import asyncio
 
-bot = commands.Bot(command_prefix=commands.when_mentioned_or("Winsy ", "winsy "))
+bot = commands.Bot(command_prefix=commands.when_mentioned_or("t ", "T "))
 bot.remove_command('help')
 
 conn = sqlite3.connect("Winsy.db")
@@ -96,16 +96,19 @@ async def on_ready():
 
 @bot.command()
 async def help(ctx, *, category = None):
+    my_guild = await bot.fetch_guild(my_server_id)
+    sus_booty = await my_guild.fetch_emoji(892751786719469598)
+    booty = await my_guild.fetch_emoji(885592612692709406)
+    hyped = await my_guild.fetch_emoji(892750347599233034)
     if category is None:
         embed = discord.Embed(title="***Help panel***", description="List of categories of all commands", color=color())
-        embed.add_field(name="*mention commands :nerd:*", value="`winsy help mention cmds`", inline=False)
-        embed.add_field(name="*image commands*", value="`winsy help image cmds`", inline=False)
-        embed.add_field(name="*interactive commands*", value="`winsy help interactive cmds`", inline=False)
-        embed.add_field(name="*search commands*", value="`winsy help search cmds`", inline=False)
+        embed.add_field(name=f"*mention commands {sus_booty}*", value="`winsy help 1`", inline=False)
+        embed.add_field(name=f"*interactive commands {booty}*", value="`winsy help 2`", inline=False)
+        embed.add_field(name=f"*search commands {hyped}*", value="`winsy help 3`", inline=False)
         embed.set_footer(text="type a command along with category name")
         await ctx.send(embed=embed)
     
-    elif category == "mention cmds":
+    elif category == "1":
         embed = discord.Embed(title="***Mention commands***", description="All mention commands.", color=color())
         embed.add_field(name="`gae <user mention>`", value="*Gives the gay percentage of the mentioned user*", inline=False)
         embed.add_field(name="`roast <user mention>`", value="*Sends a random roast to the mentioned user*", inline=False)
@@ -113,26 +116,19 @@ async def help(ctx, *, category = None):
         embed.add_field(name="`poop at <user mention>`", value="*Poops in the dm of the mentioned user*", inline=True)
         await ctx.send(embed=embed)
         await ctx.message.delete()
-    
-    elif category == "image cmds":
-        embed = discord.Embed(title="***Image commands***", description="All the image commands.", color=color())
-        embed.add_field(name="`face <user mention>`", value="*Sends the face of the mentioned user if it is present in database(currently unavailable)*", inline=False)
-        embed.add_field(name="`allfaces`", value="*Sends all the registered faces of user(currently unavailable)*", inline=False)
-        await ctx.send(embed=embed)
-        await ctx.message.delete()
 
-    elif category == "search cmds":
-        embed = discord.Embed(title="**Search commands**", description="All the search commands", color=color())
-        embed.add_field(name="`reel <reel link>`", value="Sends the direct reel video link for the user to download", inline=False)
-        embed.add_field(name='`yt <vid link>`', value="Sends the direct video link for the user to download", inline=False)
-        await ctx.send(embed=embed)
-        await ctx.message.delete()
-
-    elif category == "interactive cmds":
+    elif category == "2":
         embed = discord.Embed(title="**Interactive commands**", description="All the commands to interact with the bot.", color=color())
         embed.add_field(name="`goodnight`", value="Possible aliases: `gn`, `oyasumi` *Winsy wishes goodnight*", inline=False)
         embed.add_field(name="`laugh at <user mention>`", value="*Winsy laughs at the mentioned user*", inline=False)
         embed.add_field(name="`brofist`", value="*Winsy wishes **brofist***", inline=False)
+        await ctx.send(embed=embed)
+        await ctx.message.delete()
+
+    elif category == "3":
+        embed = discord.Embed(title="**Search commands**", description="All the search commands", color=color())
+        embed.add_field(name="`insta <insta post/reel link>`", value="Sends the media link for the user to download", inline=False)
+        embed.add_field(name='`yt <vid link>`', value="Sends the media link for the user to download", inline=False)
         await ctx.send(embed=embed)
         await ctx.message.delete()
 
