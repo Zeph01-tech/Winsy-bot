@@ -8,7 +8,7 @@ from discord.ext import commands
 from discord.ext.commands import has_permissions
 import asyncio
 
-bot = commands.Bot(command_prefix=commands.when_mentioned_or("T ", "t "))
+bot = commands.Bot(command_prefix=commands.when_mentioned_or("Winsy ", "winsy "))
 bot.remove_command('help')
 
 conn = sqlite3.connect("Winsy.db")
@@ -61,11 +61,6 @@ async def fetch_roasts(member_id, author_id):
     dict = {"roasts" : roasts, "type" : type}
     return dict
 
-def write_pic(bytes):
-    with open('temp.jpg', 'wb') as f:
-        f.write(bytes)
-        f.close()
-
 async def embed_maker(dict=None, link=None):
     if dict != None:
         dialouge = "**All the available qualities, send an index of the quality you want.**"
@@ -76,16 +71,15 @@ async def embed_maker(dict=None, link=None):
         embed = discord.Embed(description=dialouge+quality_dialouge, color=color())
 
     elif link != None:
-        embed = discord.Embed(description=f'**Download link of the video you searched for: {link}**', color=color())
+        choice = link[-5:] 
+        link = link[0:-5]
+        embed = discord.Embed(description=f'**Download link of the {choice} you searched for: {link}**', color=color())
 
     return embed
 
 def non_dm_embed():
     embed = discord.Embed(title='Note.', description="Commands can't be used through dms.", color=color())
     return embed
-
-def edit_msg(message, file):
-    asyncio.run(message.edit(file=file))
 
 async def shorten_url(url):
     token = 'c2fe6b80d67ad910a7cee6a6698d36a50575d307'
@@ -142,53 +136,55 @@ async def help(ctx, *, category = None):
         await ctx.send(embed=embed)
         await ctx.message.delete()
 
-@bot.command()
-async def test(ctx):
-    await ctx.send(f'This is a {type(ctx.channel)}')
-    print(dir(ctx.channel))
-    print()
-
 @commands.cooldown(1, 60, commands.BucketType.member)
 @bot.command()
 async def poop(ctx, at=None, member:discord.Member=None):
-    if at == 'at' or at == 'At' or at == 'aT' or at == 'AT':
-        if member is not None:
-            if member.id != my_id:
-                await member.send(":poo:")
-                await asyncio.sleep(4)
-                await member.send("*Flies away :bird:....*")
-                await ctx.send(f"Succesfully pooped at {member.mention}'s dm")
-            
-            else:
+    if isinstance(ctx.channel, discord.channel.DMChannel):
+        await ctx.send(embed=non_dm_embed())
 
-                if ctx.author.id != my_id:
-                    await ctx.send(f"Succesfully pooped at {member.mention}'s dm")
-                    await asyncio.sleep(2)
-                    await ctx.send(f"Well there's a twist, {ctx.author.mention} will understand ( ͡° ͜ʖ ͡°)")
-                    await ctx.author.send("So you are the one who tried to make me poop in my master's dm huh?")
-                    await asyncio.sleep(2)
-                    await ctx.author.send("I'll rather poop in this shitty dm instead")
-                    await asyncio.sleep(2)
-                    await ctx.author.send(":poo:")
-                    await asyncio.sleep(2)
-                    await ctx.author.send("*HEHE flies away :bird:....*")
-        
-                else:
-                    await ctx.send("What do I call this, poop fetish? senpai?")
-
-        else:
-            await ctx.send("You need to mention a user to poop on.")
     else:
-        return
+        if at == 'at' or at == 'At' or at == 'aT' or at == 'AT':
+            if member is not None:
+                if member.id != my_id:
+                    await member.send(":poo:")
+                    await asyncio.sleep(4)
+                    await member.send("*Flies away :bird:....*")
+                    await ctx.send(f"Succesfully pooped at {member.mention}'s dm")
+                
+                else:
+
+                    if ctx.author.id != my_id:
+                        await ctx.send(f"Succesfully pooped at {member.mention}'s dm")
+                        await asyncio.sleep(2)
+                        await ctx.send(f"Well there's a twist, {ctx.author.mention} will understand ( ͡° ͜ʖ ͡°)")
+                        await ctx.author.send("So you are the one who tried to make me poop in my master's dm huh?")
+                        await asyncio.sleep(2)
+                        await ctx.author.send("I'll rather poop in this shitty dm instead")
+                        await asyncio.sleep(2)
+                        await ctx.author.send(":poo:")
+                        await asyncio.sleep(2)
+                        await ctx.author.send("*HEHE flies away :bird:....*")
+            
+                    else:
+                        await ctx.send("What do I call this, poop fetish? senpai?")
+
+            else:
+                await ctx.send("You need to mention a user to poop on.")
+        else:
+            return
 
 @bot.command()
 async def ping(ctx):
-    await ctx.send(f"Pong! {round(bot.latency*1000, 1)}ms")
+    if isinstance(ctx.channel, discord.channel.DMChannel):
+        await ctx.send(embed=non_dm_embed())
+        
+    else:
+        await ctx.send(f"Pong! {round(bot.latency*1000, 1)}ms")
 
 @bot.command()
-async def reel(ctx, url:str=None):
+async def insta(ctx, url:str=None):
     if url == None:
-        await ctx.send('Give a URL of the reel you want to download')
+        await ctx.send('Provide a URL.')
 
     else:
         message = await ctx.send('Checking the URL')
@@ -196,7 +192,7 @@ async def reel(ctx, url:str=None):
             await message.edit(content='The URL which was specified was either not a reel or an unexpected URL.')
 
         else:
-            await message.edit(content='Processing your reel, this may take some time.....')
+            await message.edit(content='Processing your request, this may take some time.....')
             try:
                 api = 'https://dl.instavideosave.com/allinone'
 
@@ -209,16 +205,18 @@ async def reel(ctx, url:str=None):
                 return
 
             try:
-                vid_url = response['video']
-                embed = await embed_maker(link=await shorten_url(vid_url[-1]))
+                post_url = response['video']
+                embed = await embed_maker(link=await shorten_url(post_url[-1])+'video')
                 await message.delete()
                 await ctx.send(embed=embed)
             except:
                 try:
-                    vid_url = response['image']
-                    await message.edit(content='The link could not be generated.')
+                    post_url = response['image']
+                    embed = await embed_maker(link=await shorten_url(post_url[-1])+'video')
+                    await message.delete()
+                    await ctx.send(embed=embed)
                 except:
-                    await message.edit(content='No such reel found.')
+                    await message.edit(content="The post seems to be from a private account.")
 
 @bot.command()
 async def yt(ctx, url:str=None):
@@ -239,129 +237,138 @@ async def yt(ctx, url:str=None):
         for i in dict:
             return i
 
-    if url is None:
-        await ctx.send("Give a URL of the video you want to download.")
-
+    if isinstance(ctx.channel, discord.channel.DMChannel):
+        await ctx.send(embed=non_dm_embed())
+        
     else:
-        message = await ctx.send('Checking the URL...')
-        if url.startswith('https://youtu.be/') == False and url.startswith('https://youtube.com/shorts/') == False:
-            await message.edit(content='Invalid url for this command.')
-            return
+        if url is None:
+            await ctx.send("Give a URL of the video you want to download.")
 
         else:
-            await message.edit(content='Fetching all the available formats of the video....')
-
-        try:
-            api = "https://yt1s.com/api/ajaxSearch/index"
-            data = {'q' : url, 'vt' : 'home'}
-            response = requests.post(api, data=data).json()
-            audios_key_dict = response['links']['mp3']
-            audios_dict = audios_key_dict[fetch_key(audios_key_dict)]
-            vid_id = response['vid']
-            videos_dict = vid_dict_maker(response['links']['mp4'])
-            embed = discord.Embed(description='In which format do you want to download the file:\n **1.** *Mp4(Video)*\n**2.** *Mp3(Audio)*')
-            await message.edit(embed=embed, content="")
-            def check1(m):
-                return m.author.id == ctx.author.id and m.channel == ctx.message.channel
-
-            try:
-                format_req = await bot.wait_for('message', check=check1, timeout=10)
-                choice = format_req.content
-
-            except asyncio.TimeoutError:
-                await message.delete()
-                await ctx.send('You failed to respond in time')
+            message = await ctx.send('Checking the URL...')
+            if url.startswith('https://youtu.be/') == False and url.startswith('https://youtube.com/shorts/') == False:
+                await message.edit(content='Invalid url for this command.')
                 return
-
-            try:
-                int(choice)
-
-            except:
-                await ctx.send("Bro I'm asking for indexes here")
-                return
-
-            if choice != '1' and choice != '2':
-                await message.delete()
-                await ctx.send("Invalid index given")
-
+                
             else:
-                if choice == '1':
-                    embed = await embed_maker(dict=videos_dict)
-                    await format_req.delete()
-                    await message.edit(embed=embed, content="")
-                    def check2(m):
-                        return m.author.id == ctx.author.id and m.channel == ctx.message.channel
+                await message.edit(content='Fetching all the available formats of the video....')
 
-                    try:
-                        quality_req = await bot.wait_for('message', check=check2, timeout=10)
+            try:
+                api = "https://yt1s.com/api/ajaxSearch/index"
+                data = {'q' : url, 'vt' : 'home'}
+                response = requests.post(api, data=data).json()
+                audios_key_dict = response['links']['mp3']
+                audios_dict = audios_key_dict[fetch_key(audios_key_dict)]
+                vid_id = response['vid']
+                videos_dict = vid_dict_maker(response['links']['mp4'])
+                embed = discord.Embed(description='In which format do you want to download the file:\n **1.** *Mp4(Video)*\n**2.** *Mp3(Audio)*')
+                await message.edit(embed=embed, content="")
+                def check1(m):
+                    return m.author.id == ctx.author.id and m.channel == ctx.message.channel
+
+                try:
+                    format_req = await bot.wait_for('message', check=check1, timeout=10)
+                    choice = format_req.content
+
+                except asyncio.TimeoutError:
+                    await message.delete()
+                    await ctx.send('You failed to respond in time')
+                    return
+
+                try:
+                    int(choice)
+
+                except:
+                    await ctx.send("Bro I'm asking for indexes here")
+                    return
+
+                if choice != '1' and choice != '2':
+                    await message.delete()
+                    await ctx.send("Invalid index given")
+
+                else:
+                    if choice == '1':
+                        embed = await embed_maker(dict=videos_dict)
+                        await format_req.delete()
+                        await message.edit(embed=embed, content="")
+                        def check2(m):
+                            return m.author.id == ctx.author.id and m.channel == ctx.message.channel
+
+                        try:
+                            quality_req = await bot.wait_for('message', check=check2, timeout=10)
+                            
+                        except asyncio.TimeoutError:
+                            await message.delete()
+                            await ctx.send('You failed to respond in time')
+                            return
+
+                        try:
+                            index = int(quality_req.content)
+                        except:
+                            await message.delete()
+                            await ctx.send("Bro I'm asking for indexes here.")
+                            return
                         
-                    except asyncio.TimeoutError:
-                        await message.delete()
-                        await ctx.send('You failed to respond in time')
-                        return
+                        if index not in videos_dict:
+                            await ctx.send('Invalid index given')
 
-                    try:
-                        index = int(quality_req.content)
-                    except:
-                        await message.delete()
-                        await ctx.send("Bro I'm asking for indexes here.")
-                        return
-                    
-                    if index not in videos_dict:
-                        await ctx.send('Invalid index given')
+                        else:
+                            await quality_req.delete()
+                            await message.delete()
+                            message_ = await ctx.send('Processing your yt video with the desired quality...')
+                            req_url = videos_dict[index]['url']
+                            data = {'vid' : vid_id, 'k' : req_url}
+                            api = "https://yt1s.com/api/ajaxConvert/convert"
+                            response = requests.post(api, data=data).json()
+                            d_link = await shorten_url(response['dlink'])
+                            embed = await embed_maker(link=d_link + 'video')
+                            await message_.delete()
+                            await ctx.send(embed=embed)
 
-                    else:
+                    elif choice == '2':
+                        await format_req.delete()
                         await message.delete()
-                        await quality_req.delete()
-                        message_ = await ctx.send('Processing your yt video with the desired quality...')
-                        req_url = videos_dict[index]['url']
-                        data = {'vid' : vid_id, 'k' : req_url}
                         api = "https://yt1s.com/api/ajaxConvert/convert"
+                        data = {'vid' : vid_id, 'k' : audios_dict['k']}
                         response = requests.post(api, data=data).json()
                         d_link = await shorten_url(response['dlink'])
-                        embed = await embed_maker(link=d_link)
-                        await message_.delete()
+                        embed = await embed_maker(link=d_link + 'audio')
                         await ctx.send(embed=embed)
-
-                elif choice == '2':
-                    await format_req.delete()
-                    api = "https://yt1s.com/api/ajaxConvert/convert"
-                    data = {'vid' : vid_id, 'k' : audios_dict['k']}
-                    response = requests.post(api, data=data).json()
-                    d_link = shorten_url(response['dlink'])
-                    embed = await embed_maker(link=d_link)
-                    await ctx.send(embed=embed)
-        except:
-            await message.edit('Seems the like servers are down')
+            except:
+                await message.edit('Seems the like servers are down')
 
 @commands.cooldown(1, 30, commands.BucketType.user)
 @bot.command()
 async def spam(ctx, times=None, member:discord.Member=None, *, message=None):
-    try:
-        int(times)
-        if message is None:
-            if member.id != winsy_id:
-                if int(times) <= 10:
-                    for msg in range(1, int(times)+1):
-                        await ctx.send(f"{member.mention}")
+    if isinstance(ctx.channel, discord.channel.DMChannel):
+        await ctx.send(embed=non_dm_embed())
+        
+    else:
+        try:
+            int(times)
+            if message is None:
+                if member.id != winsy_id:
+                    if int(times) <= 10:
+                        for msg in range(1, int(times)+1):
+                            await ctx.send(f"{member.mention}")
+                    else:
+                        await ctx.send("Maximum spam limit is 10 times")
+
                 else:
-                    await ctx.send("Maximum spam limit is 10 times")
-
+                    await ctx.send(random.choice(['How foolish of you to make me spam myself.', "I don't have time to listen to your shitty request.", "Go study, atleast that'll prove to be usefull"]))
             else:
-                await ctx.send(random.choice(['How foolish of you to make me spam myself.', "I don't have time to listen to your shitty request.", "Go study, atleast that'll prove to be usefull"]))
-        else:
-            if member.id != winsy_id:
-                if int(times) <= 10:
-                    for msg in range(1, int(times)+1):
-                        await ctx.send(f"{member.mention} {message}")
+                if member.id != winsy_id:
+                    if int(times) <= 10:
+                        for msg in range(1, int(times)+1):
+                            await ctx.send(f"{member.mention} {message}")
+                    else:
+                        await ctx.send("Maximum spam limit is 10 times")
+
                 else:
-                    await ctx.send("Maximum spam limit is 10 times")
+                    await ctx.send(random.choice(['How foolish of you to make me spam myself.', "I don't have time to listen to your shitty request.", "Go study, atleast that'll prove to be usefull"]))
 
-            else:
-                await ctx.send(random.choice(['How foolish of you to make me spam myself.', "I don't have time to listen to your shitty request.", "Go study, atleast that'll prove to be usefull"]))
-
-    except:
-        await ctx.send("Use the command in this way `winsy spam <times> <user mention> <message(optional)>`")
+        except:
+            await ctx.send("Use the command in this way `winsy spam <times> <user mention> <message(optional)>`")
 
 @spam.error
 async def command_name_error(ctx, error):
@@ -372,109 +379,134 @@ async def command_name_error(ctx, error):
 @bot.command()
 @has_permissions(manage_roles=True)
 async def purge(ctx, amount:int=None):
-    if amount == None:
-        await ctx.send("Mention the amount of messages you want to purge")
+    if isinstance(ctx.channel, discord.channel.DMChannel):
+        await ctx.send(embed=non_dm_embed())
+        
     else:
-        await ctx.channel.purge(limit=amount+1)
+        if amount == None:
+            await ctx.send("Mention the amount of messages you want to purge")
+        else:
+            await ctx.channel.purge(limit=amount+1)
 
 @bot.command()
 async def laugh(ctx, at, member:discord.Member=None):
-    if at == "at" or at == "At" or at == "aT" or at == "AT":
-        if member is None:
-            await ctx.send("Mention a user to laugh at")
+    if isinstance(ctx.channel, discord.channel.DMChannel):
+        await ctx.send(embed=non_dm_embed())
         
-        else:
-            if member.id == winsy_id:
-                await ctx.send("How foolish of you to make me laugh at myself")
-
-            else:
-                choice_gif = random.choice(laugh_command_gifs)
-                embed = discord.Embed(description=member.mention, colour=color())
-                embed.set_author(name=member.name, icon_url=member.avatar_url)
-                embed.set_image(url=choice_gif)
-                await ctx.send(embed=embed)
-
     else:
-        return
+        if at == "at" or at == "At" or at == "aT" or at == "AT":
+            if member is None:
+                await ctx.send("Mention a user to laugh at")
+            
+            else:
+                if member.id == winsy_id:
+                    await ctx.send("How foolish of you to make me laugh at myself")
+
+                else:
+                    choice_gif = random.choice(laugh_command_gifs)
+                    embed = discord.Embed(description=member.mention, colour=color())
+                    embed.set_image(url=choice_gif)
+                    await ctx.send(embed=embed)
+
+        else:
+            return
 
 @bot.command(aliases=["gn", "oyasumi", "Oyasumi", "Gn"])
 async def goodnight(ctx):
-    choice = random.choice(good_night_replies)
-    choice_gif = random.choice(good_night_gifs)
-    embed = discord.Embed(description=f"**{choice}** {ctx.author.mention}", colour=color())
-    embed.set_author(name=ctx.author.name, icon_url=ctx.author.avatar_url)
-    embed.set_image(url=choice_gif)
-    await ctx.send(embed=embed) 
+    if isinstance(ctx.channel, discord.channel.DMChannel):
+        await ctx.send(embed=non_dm_embed())
+        
+    else:
+        choice = random.choice(good_night_replies)
+        choice_gif = random.choice(good_night_gifs)
+        embed = discord.Embed(description=f"**{choice}** {ctx.author.mention}", colour=color())
+        embed.set_image(url=choice_gif)
+        await ctx.send(embed=embed) 
 
 @bot.command()
 async def brofist(ctx):
-    file = discord.File(f"Winsy/bro_fist/e4579003-ac2f-478d-874e-da4ad0f25cf0.jpg")
-    embed = discord.Embed(description=f"**{random.choice(bro_fist_replies)}** {ctx.author.mention}", colour=color())
-    embed.set_author(name=ctx.author.name, icon_url=ctx.author.avatar_url)
-    embed.set_image(url=f"attachment://e4579003-ac2f-478d-874e-da4ad0f25cf0.jpg")
-    await ctx.send(file=file, embed=embed)
+    if isinstance(ctx.channel, discord.channel.DMChannel):
+        await ctx.send(embed=non_dm_embed())
+        
+    else:
+        file = discord.File(f"Winsy/bro_fist/e4579003-ac2f-478d-874e-da4ad0f25cf0.jpg")
+        embed = discord.Embed(description=f"**{random.choice(bro_fist_replies)}** {ctx.author.mention}", colour=color())
+        embed.set_image(url=f"attachment://e4579003-ac2f-478d-874e-da4ad0f25cf0.jpg")
+        await ctx.send(file=file, embed=embed)
 
 @bot.command(aliases=["gay"])
 async def gae(ctx, member:discord.Member=None):
-    if member == None:
-        await ctx.send("You need to mention a user to use this command")
+    if isinstance(ctx.channel, discord.channel.DMChannel):
+        await ctx.send(embed=non_dm_embed())
+        
     else:
-        embed = discord.Embed(title=f":rainbow_flag: Gae %", colour=color())
-        cant_gay_you = ["I can't gay you Yosh", "Why u wanna gay yourself senpai Yosh •_•"]
-        dont_gay_me = ["Why u wanna gay me master ༎ຶ‿༎ຶ", "Please don't gay me senpai ಥ‿ಥ"]
-        if ctx.author.id == my_id:
-            if member.id == my_id:
-                await ctx.send(random.choice(cant_gay_you))
-            elif member.id == winsy_id:
-                await ctx.send(random.choice(dont_gay_me))
+        if member == None:
+            await ctx.send("You need to mention a user to use this command")
+        else:
+            embed = discord.Embed(title=f":rainbow_flag: Gae %", colour=color())
+            cant_gay_you = ["I can't gay you Yosh", "Why u wanna gay yourself senpai Yosh •_•"]
+            dont_gay_me = ["Why u wanna gay me master ༎ຶ‿༎ຶ", "Please don't gay me senpai ಥ‿ಥ"]
+            if ctx.author.id == my_id:
+                if member.id == my_id:
+                    await ctx.send(random.choice(cant_gay_you))
+                elif member.id == winsy_id:
+                    await ctx.send(random.choice(dont_gay_me))
+                
+                else:
+                    embed.description=f"{member.name} is {random.randint(0, 101)}% gae"
+                    await ctx.send(embed=embed)
+
+            elif member.id == my_id:
+                embed.description = f"{member.name} is 0% gae and 100% chad, Although {ctx.author.name} is probably {random.randint(90, 101)}% gae"
+                await ctx.send(embed=embed)
             
+            elif member.id == winsy_id:
+                reply = "I decide who is gae, and I can't be the one to be gayed bruh"
+                await ctx.send(reply)
+
             else:
                 embed.description=f"{member.name} is {random.randint(0, 101)}% gae"
                 await ctx.send(embed=embed)
 
-        elif member.id == my_id:
-            embed.description = f"{member.name} is 0% gae and 100% chad, Although {ctx.author.name} is probably {random.randint(90, 101)}% gae"
-            await ctx.send(embed=embed)
-        
-        elif member.id == winsy_id:
-            reply = "I decide who is gae, and I can't be the one to be gayed bruh"
-            await ctx.send(reply)
-
-        else:
-            embed.description=f"{member.name} is {random.randint(0, 101)}% gae"
-            await ctx.send(embed=embed)
-
 @bot.command()
 async def roast(ctx, member:discord.Member=None):
-    if member == None:
-        await ctx.send("You need to mention a user to roast")
+    if isinstance(ctx.channel, discord.channel.DMChannel):
+        await ctx.send(embed=non_dm_embed())
+        
     else:
-        dict = await fetch_roasts(member.id, ctx.author.id)
-        roasts = dict.get('roasts')
-        type = dict.get('type')
-        choice = random.choice(roasts)
-        if type == 'Normal':
-            await ctx.send(f"{member.mention} {choice}")
-
+        if member == None:
+            await ctx.send("You need to mention a user to roast")
         else:
-            await ctx.send(choice)
+            dict = await fetch_roasts(member.id, ctx.author.id)
+            roasts = dict.get('roasts')
+            type = dict.get('type')
+            choice = random.choice(roasts)
+            if type == 'Normal':
+                await ctx.send(f"{member.mention} {choice}")
+
+            else:
+                await ctx.send(choice)
 
 @bot.command()
 async def why(ctx, insult=None, member:discord.Member=None):
-    if insult == 'insult':
-        if member is not None:
-            await ctx.send(f"{member.mention} I'm not insulting you. I'm describing you.")
-        else:
-            await ctx.send(f"{ctx.author.mention} I'm not insulting you. I'm describing you.")
-    
+    if isinstance(ctx.channel, discord.channel.DMChannel):
+        await ctx.send(embed=non_dm_embed())
+        
     else:
-        return
+        if insult == 'insult':
+            if member is not None:
+                await ctx.send(f"{member.mention} I'm not insulting you. I'm describing you.")
+            else:
+                await ctx.send(f"{ctx.author.mention} I'm not insulting you. I'm describing you.")
+        
+        else:
+            return
 
-# @bot.event
-# async def on_command_error(ctx, error):
-#     channel = bot.get_channel(error_channel_id)
-#     embed = discord.Embed(title='Error raised in '+str(ctx.command), description=error, color=color())
-#     await channel.send(embed=embed)
+@bot.event
+async def on_command_error(ctx, error):
+    channel = bot.get_channel(error_channel_id)
+    embed = discord.Embed(title='Error raised in '+str(ctx.command), description=error, color=color())
+    await channel.send(embed=embed)
 
 all_cogs = os.listdir('./Winsy/cogs')
 for file in all_cogs:
