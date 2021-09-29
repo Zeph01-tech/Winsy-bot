@@ -8,7 +8,7 @@ from discord.ext import commands
 from discord.ext.commands import has_permissions
 import asyncio
 
-bot = commands.Bot(command_prefix=commands.when_mentioned_or("winsy ", "Winsy "))
+bot = commands.Bot(command_prefix=commands.when_mentioned_or("t ", "T "))
 bot.remove_command('help')
 
 conn = sqlite3.connect("Winsy.db")
@@ -190,7 +190,7 @@ async def insta(ctx, url:str=None):
 
         else:
             message = await ctx.send('Checking the URL')
-            if url.startswith('https://www.instagram.com/p') == False and url.startswith('https://www.instagram.com/reels') == False:
+            if url.startswith('https://www.instagram.com/p') == False and url.startswith('https://www.instagram.com/reel') == False:
                 await message.edit(content=f'The URL which was specified was either not a insta URL or an unexpected URL or maybe {get_emoji(774297843094782013)}')
 
             else:
