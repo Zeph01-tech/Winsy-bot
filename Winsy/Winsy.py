@@ -184,7 +184,7 @@ async def ping(ctx):
 @bot.command()
 async def insta(ctx, url:str=None):
     if isinstance(ctx.channel, discord.channel.DMChannel):
-        await ctx.send(non_dm_embed())
+        await ctx.send(embed=non_dm_embed())
 
     else:
         if url == None:
