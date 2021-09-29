@@ -206,13 +206,14 @@ async def insta(ctx, url:str=None):
 
                 try:
                     post_url = response['video']
-                    embed = await embed_maker(link=await shorten_url(post_url[-1])+'video')
+                    embed = await embed_maker(link=await shorten_url(post_url[0])+'video')
                     await message.delete()
                     await ctx.send(embed=embed)
+                    
                 except:
                     try:
                         post_url = response['image']
-                        embed = await embed_maker(link=await shorten_url(post_url[-1])+'video')
+                        embed = await embed_maker(link=await shorten_url(post_url[0])+'image')
                         await message.delete()
                         await ctx.send(embed=embed)
                     except:
@@ -502,11 +503,11 @@ async def why(ctx, insult=None, member:discord.Member=None):
         else:
             return
 
-@bot.event
-async def on_command_error(ctx, error):
-    channel = bot.get_channel(error_channel_id)
-    embed = discord.Embed(title='Error raised in '+str(ctx.command), description=error, color=color())
-    await channel.send(embed=embed)
+# @bot.event
+# async def on_command_error(ctx, error):
+#     channel = bot.get_channel(error_channel_id)
+#     embed = discord.Embed(title='Error raised in '+str(ctx.command), description=error, color=color())
+#     await channel.send(embed=embed)
 
 all_cogs = os.listdir('./Winsy/cogs')
 for file in all_cogs:
