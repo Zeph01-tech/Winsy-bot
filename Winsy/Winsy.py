@@ -8,7 +8,7 @@ from discord.ext import commands
 from discord.ext.commands import has_permissions
 import asyncio
 
-bot = commands.Bot(command_prefix=commands.when_mentioned_or("Winsy ", "winsy "))
+bot = commands.Bot(command_prefix=commands.when_mentioned_or("T ", "t "))
 bot.remove_command('help')
 
 conn = sqlite3.connect("Winsy.db")
@@ -293,7 +293,7 @@ async def ignorelist(ctx):
                     if dialouge == '':
                         embed.description = '*Empty*'
                     else:
-                        embed.add_field(name=f'List of all the ignored members in this server {get_emoji(890869939429314610)}', value=dialouge, inline=False)
+                        embed.add_field(name=f'{get_emoji(890869939429314610)}', value=dialouge, inline=False)
                     
                     await ctx.send(embed=embed)
 
@@ -334,16 +334,19 @@ async def unignore(ctx, member:discord.Member=None):
         await ctx.send(embed=non_dm_embed())
 
     else:
+        guild_id = ctx.guild.id
+        if guild_id not in ignored.guildkeys():
+            ignored.addguild(guild_id)
         if ctx.author.id not in ignoreable.members:
             return
         else:
             if member == None:
                 await ctx.send('Mention a user to unignore {}'.format(get_emoji(885592462599536701)))
             else:
-                if member.id in ignored.members:
-                    index = ignored.members.index(member.id)
-                    ignored.members.pop(index)
-                    await ctx.send('Removed {} from dump list {}'.format(member.mention,get_emoji(random.choice([876032718486507591, 892776197887524935]))))
+                if member.id in ignored.guilds[guild_id]:
+                    index = ignored.guilds[guild_id].index(member.id)
+                    ignored.guilds[guild_id].pop(index)
+                    await ctx.send('Removed {} from dump list {}'.format(member.mention, get_emoji(random.choice([876032718486507591, 892776197887524935]))))
 
 @bot.command(aliases=['clearil'])
 async def clearignorelist(ctx):
@@ -354,7 +357,10 @@ async def clearignorelist(ctx):
         if ctx.author.id not in ignoreable.members:
             return
         else:
-            ignored.members = []
+            guild_id = ctx.guild.id
+            if guild_id not in ignored.guildkeys():
+                ignored.addguild(guild_id)
+            ignored.guilds[guild_id] = []
             await ctx.send('Ignored members list is cleared {}'.format('✅')) 
 
 @bot.command()
