@@ -3,6 +3,7 @@ import discord
 import random
 import os
 import bitly_api
+from discord.errors import Forbidden
 import requests
 from discord.ext import commands
 from discord.ext.commands import has_permissions
@@ -33,6 +34,16 @@ good_night_replies = ["**Oyasumi!**", "**Night!**", "**Have a great night**", "*
 
 good_night_gifs = ["https://c.tenor.com/3fAZZncIHDQAAAAC/smile-anime.gif", "https://c.tenor.com/ouo5podnrgUAAAAS/cuddle-love.gif", "https://c.tenor.com/01cElrH1Ed8AAAAS/anime-shiro.gif", "https://c.tenor.com/Bn_E6t9-m_wAAAAC/sleeping-kiss.gif", "https://c.tenor.com/3eouI6QChiEAAAAC/anime-cuteness.gif", "https://c.tenor.com/tVBrvOB5ttkAAAAC/11-sad.gif"]
 laugh_command_gifs = ["https://cdn.discordapp.com/attachments/873552851157254144/874619767749758986/hehe.gif", "https://c.tenor.com/fqRNsILmXHQAAAAC/anime-girl.gif", "https://cdn.discordapp.com/attachments/873552851157254144/874620123930038282/natsu-lol.gif", "https://c.tenor.com/qEfogXAprQoAAAAC/nichijou-laughing.gif", "https://c.tenor.com/fbWCY-1exTsAAAAS/bokura-wa-minna-kawaisou-gifs-to-reaction.gif"]
+
+class Embeds:
+    def command_cancelled():
+        embed = discord.Embed(description="Command cancelled.", color=0xe80e24)
+        return embed
+
+    def non_dm_embed():
+        embed = discord.Embed(title='Note.', description="Commands can't be used through dms.", color=color())
+        return embed
+
 
 def color():
     colors = [0xFF355E,0xFD5B78,0xFF6037,0xFF9966,0xFF9933,0xFFCC33,0xFFFF66,0xFFFF66,0xCCFF00,0x66FF66,0xAAF0D1,0x50BFE6,0xFF6EFF,0xEE34D2,0xFF00CC,0xFF00CC,0xFF3855,0xFD3A4A,0xFB4D46,0xFA5B3D,0xFFAA1D,0xFFF700,0x299617,0xA7F432,0x2243B6,0x5DADEC,0x5946B2,0x9C51B6,0xA83731,0xAF6E4D,0xBFAFB2,0xFF5470,0xFFDB00,0xFF7A00,0xFDFF00,0x87FF2A,0x0048BA,0xFF007C,0xE936A7]    
@@ -75,10 +86,6 @@ async def embed_maker(dict=None, link=None):
         embed = discord.Embed(description=f'**URL of the {choice} you searched for {emoji2}: {link}**', color=color())
         embed.set_footer(icon_url='https://cdn.discordapp.com/emojis/892776197887524935.png', text='Enjoy')
 
-    return embed
-
-def non_dm_embed():
-    embed = discord.Embed(title='Note.', description="Commands can't be used through dms.", color=color())
     return embed
 
 async def shorten_url(url):
@@ -144,6 +151,9 @@ async def help(ctx, *, category = None):
         embed.add_field(name='`ignoreownerlist` Possible aliase(s): `iol`', value="Sends the list of all the members who can use `ignore` command", inline=False)
         embed.add_field(name='`addignoreowner` Possible aliase(s): `addio`', value="User will be added in the list of `ignore cmd owner(s)` (can only be used by bot owner)", inline=False)
         embed.add_field(name='`removeignoreowner` Possible aliase(s): `removeio`', value="User will be removed from the list of `ignore cmd owner(s)` (can only be used by bot owner)", inline=False)
+        embed.add_field(name="`kick`", value="User will be kicked from the server (can only be used by members with thse `kick members` permission)", inline=False)
+        embed.add_field(name="`mute`", value="User will be muted (can only be used by members with `kick members` permission)", inline=False)
+        embed.add_field(name="`unmute`", value="User will be unmuted if already muted (can only be used by members with `kick members` permission)", inline=False)
         await ctx.send(embed=embed)
         await ctx.message.delete()
 
@@ -151,7 +161,7 @@ async def help(ctx, *, category = None):
 @bot.command()
 async def poop(ctx, at:str=None, member:discord.Member=None):
     if isinstance(ctx.channel, discord.channel.DMChannel):
-        await ctx.send(embed=non_dm_embed())
+        await ctx.send(embed=Embeds.non_dm_embed())
 
     else:
         guild_id = ctx.guild.id
@@ -204,11 +214,10 @@ class ignored:
         value = {guildid : []}
         ignored.guilds.update(value)
 
-
 @bot.command(aliases=['iol'])
 async def ignoreownerlist(ctx):
         if isinstance(ctx.channel, discord.channel.DMChannel):
-            await ctx.send(embed=non_dm_embed())
+            await ctx.send(embed=Embeds.non_dm_embed())
 
         else:
             guild_id = ctx.guild.id
@@ -233,7 +242,7 @@ async def ignoreownerlist(ctx):
 @bot.command(aliases=['addio'])
 async def addignoreowner(ctx, member:discord.Member=None):
     if isinstance(ctx.channel, discord.channel.DMChannel):
-        await ctx.send(embed=non_dm_embed())
+        await ctx.send(embed=Embeds.non_dm_embed())
 
     else:
         if ctx.author.id != my_id:
@@ -251,7 +260,7 @@ async def addignoreowner(ctx, member:discord.Member=None):
 @bot.command(aliases=['removeio'])
 async def removeignoreowner(ctx, member:discord.Member=None):
     if isinstance(ctx.channel, discord.channel.DMChannel):
-        await ctx.send(embed=non_dm_embed())
+        await ctx.send(embed=Embeds.non_dm_embed())
 
     else:
         if ctx.author.id != my_id:
@@ -267,7 +276,7 @@ async def removeignoreowner(ctx, member:discord.Member=None):
 @bot.command(aliases=['il'])
 async def ignorelist(ctx):
         if isinstance(ctx.channel, discord.channel.DMChannel):
-            await ctx.send(embed=non_dm_embed())
+            await ctx.send(embed=Embeds.non_dm_embed())
 
         else:
             guild_id = ctx.guild.id
@@ -300,7 +309,7 @@ async def ignorelist(ctx):
 @bot.command()
 async def ignore(ctx, member:discord.Member=None):
     if isinstance(ctx.channel, discord.channel.DMChannel):
-        await ctx.send(embed=non_dm_embed())
+        await ctx.send(embed=Embeds.non_dm_embed())
 
     else:
         guild_id = ctx.guild.id
@@ -331,7 +340,7 @@ async def ignore(ctx, member:discord.Member=None):
 @bot.command()
 async def unignore(ctx, member:discord.Member=None):
     if isinstance(ctx.channel, discord.channel.DMChannel):
-        await ctx.send(embed=non_dm_embed())
+        await ctx.send(embed=Embeds.non_dm_embed())
 
     else:
         guild_id = ctx.guild.id
@@ -351,7 +360,7 @@ async def unignore(ctx, member:discord.Member=None):
 @bot.command(aliases=['clearil'])
 async def clearignorelist(ctx):
     if isinstance(ctx.channel, discord.channel.DMChannel):
-        await ctx.send(embed=non_dm_embed())
+        await ctx.send(embed=Embeds.non_dm_embed())
 
     else:
         if ctx.author.id not in ignoreable.members:
@@ -366,7 +375,7 @@ async def clearignorelist(ctx):
 @bot.command()
 async def ping(ctx):
     if isinstance(ctx.channel, discord.channel.DMChannel):
-        await ctx.send(embed=non_dm_embed())
+        await ctx.send(embed=Embeds.non_dm_embed())
         
     else:
         guild_id = ctx.guild.id
@@ -380,7 +389,7 @@ async def ping(ctx):
 @bot.command()
 async def insta(ctx, url:str=None):
     if isinstance(ctx.channel, discord.channel.DMChannel):
-        await ctx.send(embed=non_dm_embed())
+        await ctx.send(embed=Embeds.non_dm_embed())
 
     else:
         guild_id = ctx.guild.id
@@ -440,7 +449,7 @@ async def yt(ctx, url:str=None):
             return i
 
     if isinstance(ctx.channel, discord.channel.DMChannel):
-        await ctx.send(embed=non_dm_embed())
+        await ctx.send(embed=Embeds.non_dm_embed())
         
     else:
         guild_id = ctx.guild.id
@@ -521,6 +530,7 @@ async def yt(ctx, url:str=None):
                                 data = {'vid' : vid_id, 'k' : req_url}
                                 api = "https://yt1s.com/api/ajaxConvert/convert"
                                 response = requests.post(api, data=data).json()
+                                await ctx.send(response['dlink'])
                                 d_link = await shorten_url(response['dlink'])
                                 embed = await embed_maker(link=d_link + 'video')
                                 await message_.delete()
@@ -541,7 +551,7 @@ async def yt(ctx, url:str=None):
 @bot.command()
 async def spam(ctx, times=None, member:discord.Member=None, *, message=None):
     if isinstance(ctx.channel, discord.channel.DMChannel):
-        await ctx.send(embed=non_dm_embed())
+        await ctx.send(embed=Embeds.non_dm_embed())
         
     else:
         guild_id = ctx.guild.id
@@ -583,10 +593,73 @@ async def command_name_error(ctx, error):
         await ctx.send(embed=embed)
 
 @bot.command()
+@has_permissions(kick_members=True)
+async def kick(ctx, member:discord.Member=None, *,reason:str=None):
+    if isinstance(ctx.channel, discord.channel.DMChannel):
+        await ctx.send(embed=Embeds.non_dm_embed())
+        
+    else:
+        if member is None:
+            await ctx.send("Mention a user to kick")
+        elif reason is None:
+            await ctx.send("You need to provide a reason to kick someone")
+        else:
+            await ctx.send(f"{ctx.author.mention} Do you confirm to kick {member.mention} from this server?\nReply with yes/y or no/n")
+
+            def check(m):
+                return m.author.id == ctx.author.id and m.channel == ctx.message.channel and m.content.lower() in ["yes", "y", "no", "n"]
+
+            try:
+                reply = await bot.wait_for('message', check=check, timeout=20)
+            except asyncio.TimeoutError:
+                await ctx.send(embed=Embeds.command_cancelled())
+                return
+            if reply.content.lower() in ["yes", "y"]:
+                await member.kick(reason=reason)
+                await ctx.send(f"Kicked Successfully {get_emoji(885592612692709406)}")
+            else:
+                await ctx.send(embed=Embeds.command_cancelled())
+
+@bot.command()
+@has_permissions(kick_members=True)
+async def mute(ctx, member:discord.Member=None):
+    if isinstance(ctx.channel, discord.channel.DMChannel):
+        await ctx.send(embed=Embeds.non_dm_embed())
+        
+    else:
+        if member is None:
+            await ctx.send("Mention a user to mute")
+        else:
+            role = discord.utils.get(ctx.guild.roles, name='mute')
+            if role is None:
+                embed = discord.Embed(description="You need to make a 'mute' role in your server and set it's permissions to function accordingly")
+                await ctx.send(embed=embed)
+            else:
+                await member.add_roles(role)
+                await ctx.send(f"Muted {member.mention} {get_emoji(774296198211043329)}")
+
+@bot.command()
+@has_permissions(kick_members=True)
+async def unmute(ctx, member:discord.Member=None):
+    if isinstance(ctx.channel, discord.channel.DMChannel):
+        await ctx.send(embed=Embeds.non_dm_embed())
+        
+    else:
+        if member is None:
+            await ctx.send("Mention a user to unmute")
+        else:
+            role = discord.utils.get(member.roles, name="mute")
+            if role is None:
+                await ctx.send(f"{member.mention} is not muted {get_emoji(876025069866999808)}")
+            else:
+                await member.remove_roles(role)
+                await ctx.send(f"Unmuted {member.mention} {get_emoji(random.choice([775398330150813736, 876032718486507591, 894576946321694751, 876025887039049738]))}")
+
+@bot.command()
 @has_permissions(manage_roles=True)
 async def purge(ctx, amount:int=None):
     if isinstance(ctx.channel, discord.channel.DMChannel):
-        await ctx.send(embed=non_dm_embed())
+        await ctx.send(embed=Embeds.non_dm_embed())
         
     else:
         guild_id = ctx.guild.id
@@ -712,7 +785,7 @@ async def amogus(ctx):
 @bot.command()
 async def laugh(ctx, at, member:discord.Member=None):
     if isinstance(ctx.channel, discord.channel.DMChannel):
-        await ctx.send(embed=non_dm_embed())
+        await ctx.send(embed=Embeds.non_dm_embed())
         
     else:
         guild_id = ctx.guild.id
@@ -741,7 +814,7 @@ async def laugh(ctx, at, member:discord.Member=None):
 @bot.command(aliases=["gn", "oyasumi", "Oyasumi", "Gn"])
 async def goodnight(ctx):
     if isinstance(ctx.channel, discord.channel.DMChannel):
-        await ctx.send(embed=non_dm_embed())
+        await ctx.send(embed=Embeds.non_dm_embed())
         
     else:
         guild_id = ctx.guild.id
@@ -759,7 +832,7 @@ async def goodnight(ctx):
 @bot.command()
 async def brofist(ctx):
     if isinstance(ctx.channel, discord.channel.DMChannel):
-        await ctx.send(embed=non_dm_embed())
+        await ctx.send(embed=Embeds.non_dm_embed())
         
     else:
         guild_id = ctx.guild.id
@@ -776,7 +849,7 @@ async def brofist(ctx):
 @bot.command(aliases=["gay"])
 async def gae(ctx, member:discord.Member=None):
     if isinstance(ctx.channel, discord.channel.DMChannel):
-        await ctx.send(embed=non_dm_embed())
+        await ctx.send(embed=Embeds.non_dm_embed())
         
     else:
         guild_id = ctx.guild.id
@@ -812,7 +885,7 @@ async def gae(ctx, member:discord.Member=None):
 @bot.command()
 async def roast(ctx, member:discord.Member=None):
     if isinstance(ctx.channel, discord.channel.DMChannel):
-        await ctx.send(embed=non_dm_embed())
+        await ctx.send(embed=Embeds.non_dm_embed())
         
     else:
         guild_id = ctx.guild.id
@@ -853,7 +926,7 @@ async def roast(ctx, member:discord.Member=None):
 @bot.command()
 async def why(ctx, insult:str=None, member:discord.Member=None):
     if isinstance(ctx.channel, discord.channel.DMChannel):
-        await ctx.send(embed=non_dm_embed())
+        await ctx.send(embed=Embeds.non_dm_embed())
         
     else:
         guild_id = ctx.guild.id
