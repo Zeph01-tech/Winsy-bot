@@ -693,7 +693,7 @@ async def amogus(ctx):
         return embed
 
     if isinstance(ctx.channel, discord.channel.DMChannel):
-        await ctx.send(embed=non_dm_embed())
+        await ctx.send(embed=Embeds.non_dm_embed())
 
     else:
         guild_id = ctx.guild.id
