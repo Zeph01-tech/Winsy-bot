@@ -37,23 +37,18 @@ laugh_command_gifs = ["https://cdn.discordapp.com/attachments/873552851157254144
 
 class Embeds:
     def command_cancelled():
-        embed = discord.Embed(description="Command cancelled.", color=0xe80e24)
-        return embed
+        return discord.Embed(description="Command cancelled.", color=0xe80e24)
 
     def non_dm_embed():
-        embed = discord.Embed(title='Note.', description="Commands can't be used through dms.", color=color())
-        return embed
+        return discord.Embed(title='Note.', description="Commands can't be used through dms.", color=color())
 
-
-def color():
-    colors = [0xFF355E,0xFD5B78,0xFF6037,0xFF9966,0xFF9933,0xFFCC33,0xFFFF66,0xFFFF66,0xCCFF00,0x66FF66,0xAAF0D1,0x50BFE6,0xFF6EFF,0xEE34D2,0xFF00CC,0xFF00CC,0xFF3855,0xFD3A4A,0xFB4D46,0xFA5B3D,0xFFAA1D,0xFFF700,0x299617,0xA7F432,0x2243B6,0x5DADEC,0x5946B2,0x9C51B6,0xA83731,0xAF6E4D,0xBFAFB2,0xFF5470,0xFFDB00,0xFF7A00,0xFDFF00,0x87FF2A,0x0048BA,0xFF007C,0xE936A7]    
-    return random.choice(colors)
+def color():  
+    return random.choice([0xFF355E,0xFD5B78,0xFF6037,0xFF9966,0xFF9933,0xFFCC33,0xFFFF66,0xFFFF66,0xCCFF00,0x66FF66,0xAAF0D1,0x50BFE6,0xFF6EFF,0xEE34D2,0xFF00CC,0xFF00CC,0xFF3855,0xFD3A4A,0xFB4D46,0xFA5B3D,0xFFAA1D,0xFFF700,0x299617,0xA7F432,0x2243B6,0x5DADEC,0x5946B2,0x9C51B6,0xA83731,0xAF6E4D,0xBFAFB2,0xFF5470,0xFFDB00,0xFF7A00,0xFDFF00,0x87FF2A,0x0048BA,0xFF007C,0xE936A7])
 
 def get_emoji(id):
     for emoji in my_guild.emojis:
         if emoji.id == id:
-            break
-    return emoji
+            return emoji
 
 async def fetch_roasts(member_id):
     if member_id == my_id:
@@ -530,7 +525,6 @@ async def yt(ctx, url:str=None):
                                 data = {'vid' : vid_id, 'k' : req_url}
                                 api = "https://yt1s.com/api/ajaxConvert/convert"
                                 response = requests.post(api, data=data).json()
-                                await ctx.send(response['dlink'])
                                 d_link = await shorten_url(response['dlink'])
                                 embed = await embed_maker(link=d_link + 'video')
                                 await message_.delete()
