@@ -3,7 +3,7 @@ import discord
 import random
 import os
 import bitly_api
-from discord.errors import Forbidden
+from youtube_dl import YoutubeDL
 import requests
 from discord.ext import commands
 from discord.ext.commands import has_permissions
@@ -532,10 +532,10 @@ async def yt(ctx, url:str=None):
                         elif choice == '2':
                             await format_req.delete()
                             await message.delete()
-                            api = "https://yt1s.com/api/ajaxConvert/convert"
-                            data = {'vid' : vid_id, 'k' : audios_dict['k']}
-                            response = requests.post(api, data=data).json()
-                            d_link = await shorten_url(response['dlink'])
+                            YTDL_OPTIONS = {'format': 'bestaudio','cookiefile':'./cookie.txt'}
+                            with YoutubeDL(YTDL_OPTIONS) as ytdl:
+                                info = ytdl.extract_info(url, download=False)
+                            d_link = await shorten_url(info['formats'][0]['url'])
                             embed = await embed_maker(link=d_link + 'audio')
                             await ctx.send(embed=embed)
                 except:
