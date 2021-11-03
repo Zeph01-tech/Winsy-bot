@@ -84,7 +84,8 @@ async def embed_maker(dict=None, link=None):
     return embed
 
 async def shorten_url(url):
-    token = 'c2fe6b80d67ad910a7cee6a6698d36a50575d307'
+    with open('./TOKENS/bitly_token.txt', 'r') as file:
+        token = file.read()
 
     conn = bitly_api.Connection(access_token=token)
     reponse = conn.shorten(url)
@@ -949,7 +950,7 @@ for file in all_cogs:
     if file.endswith('.py'):
         bot.load_extension(f'cogs.{file[:-3]}')
 
-with open('token.txt', 'r') as file:
+with open('./TOKENS/token.txt', 'r') as file:
     TOKEN = file.read()
 
 bot.run(TOKEN)
