@@ -949,4 +949,7 @@ for file in all_cogs:
     if file.endswith('.py'):
         bot.load_extension(f'cogs.{file[:-3]}')
 
-bot.run('ODczNTA0ODEwMjc4NzM5OTg4.YQ5Yvw.0Y1Qd1vSOr7i2iZTimyt9SRCZNQ')
+with open('token.txt', 'r') as file:
+    TOKEN = file.read()
+
+bot.run(TOKEN)
