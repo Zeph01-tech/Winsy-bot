@@ -21,6 +21,7 @@ winsy_id = 873504810278739988
 my_server_id = 762380604058632222
 
 error_channel_id = 887385480679788574
+
 bro_fist_replies = ["**Yesss boss!**", "**BRO FIST!!!**", "**Zhong Zhong**"]
 good_night_replies = ["**Oyasumi!**", "**Night!**", "**Have a great night**", "**Sweet dreams**"]
 
