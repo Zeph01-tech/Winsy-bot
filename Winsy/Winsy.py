@@ -1,13 +1,14 @@
 import sqlite3
 import discord
 import random
+import asyncio
 import os
 import bitly_api
-from youtube_dl import YoutubeDL
 import requests
+from spellchecker import SpellChecker
+from youtube_dl import YoutubeDL
 from discord.ext import commands
 from discord.ext.commands import has_permissions
-import asyncio
 
 bot = commands.Bot(command_prefix=commands.when_mentioned_or("T ", "t "))
 bot.remove_command('help')
@@ -398,7 +399,7 @@ async def insta(ctx, url:str=None):
                 await ctx.send(f'Provide a URL {get_emoji(885592462599536701)}')
             else:
                 message = await ctx.send('Checking the URL')
-                if url.startswith('https://www.instagram.com/p') == False and url.startswith('https://www.instagram.com/reel') == False:
+                if url.startswith('https://www.instagram.com/p') == False and url.startswith('https://www.instagram.com/reel') == False and url.startswith('https://www.instagram.com/tv') == False:
                     await message.edit(content=f'The URL which was specified was either not a insta URL or an unexpected URL or maybe {get_emoji(774297843094782013)}')
                 else:
                     await message.edit(content=f'{get_emoji(892750347599233034)} Processing your request, this may take some time.....')
@@ -667,6 +668,384 @@ async def purge(ctx, amount:int=None):
                 await ctx.send("Mention the amount of messages you want to purge")
             else:
                 await ctx.channel.purge(limit=amount+1)
+
+class Atlas:
+    
+    players = []
+    used_places = []
+    def fetch_countries():
+        all = """
+        Afghanistan	#Kabul
+        *Albania	#Tirana (Tirane)
+        *Algeria	#Algiers
+        *Andorra	#Andorra la Vella
+        *Angola	#Luanda
+        *Antigua and Barbuda	#Saint John's
+        *Argentina	#Buenos Aires
+        *Armenia	#Yerevan
+        *Australia	#Canberra
+        *Austria	#Vienna
+        *Azerbaijan	#Baku
+        *Bahamas	#Nassau
+        *Bahrain	#Manama
+        *Bangladesh	#Dhaka
+        *Barbados	#Bridgetown
+        *Belarus	#Minsk
+        *Belgium	#Brussels
+        *Belize	#Belmopan
+        *Benin	#Porto Novo
+        *Bhutan	#Thimphu
+        *Bolivia	#La Paz (administrative), Sucre (official)
+        *Bosnia and #Herzegovina	Sarajevo
+        *Botswana	#Gaborone
+        *Brazil	#Brasilia
+        *Brunei	#Bandar Seri Begawan
+        *Bulgaria	#Sofia
+        *Burkina Faso	#Ouagadougou
+        *Burundi	#Gitega
+        *Cambodia	#Phnom Penh
+        *Cameroon	#Yaounde
+        *Canada	#Ottawa
+        *Cape Verde	#Praia
+        *Central African Republic	#Bangui
+        *Chad	#N'Djamena
+        *Chile	#Santiago
+        *China	#Beijing
+        *Colombia	#Bogota
+        *Comoros	#Moroni
+        *Costa Rica	#San Jose
+        *Côte d'Ivoire 	#Yamoussoukro
+        *Croatia	#Zagreb
+        *Cuba	#Havana
+        *Cyprus	#Nicosia
+        *Czech Republic (Czechia)	#Prague
+        *Denmark	#Copenhagen
+        *Djibouti	#Djibouti
+        *Dominica	#Roseau
+        *Dominican Republic	#Santo Domingo
+        *East Timor	#Dili
+        *Ecuador	#Quito
+        *Egypt	#Cairo
+        *El Salvador	#San Salvador
+        *England	#London
+        *Equatorial Guinea	#Malabo
+        *Eritrea	#Asmara
+        *Estonia	#Tallinn
+        *Eswatini	#Mbabana
+        *Ethiopia	#Addis Ababa
+        *Federated States of Micronesia	#Palikir
+        *Fiji	#Suva
+        *Finland	#Helsinki
+        *France	#Paris
+        *Gabon	#Libreville
+        *Gambia	#Banjul
+        *Georgia	#Tbilisi
+        *Germany	#Berlin
+        *Ghana	#Accra
+        *Greece	#Athens
+        *Grenada	#Saint George's
+        *Guatemala	#Guatemala City
+        *Guinea	#Conakry
+        *Guinea-Bissau	#Bissau
+        *Guyana	#Georgetown
+        *Haiti	#Port au Prince
+        *Honduras	#Tegucigalpa
+        *Iceland	#Reykjavik
+        *Hungary	#Budapest
+        *India	#New Delhi
+        *Indonesia	#Jakarta
+        *Iran	#Tehran
+        *Iraq	#Baghdad
+        *Ireland	#Dublin
+        *Israel	#Jerusalem
+        *Italy	#Rome
+        *Jamaica	#Kingston
+        *Japan	#Tokyo
+        *Jordan	#Amman
+        *Kazakhstan	#Nur-Sultan
+        *Kenya	#Nairobi
+        *Kiribati	#Tarawa Atoll
+        *Kosovo	#Pristina
+        *Kuwait	#Kuwait City
+        *Kyrgyzstan	#Bishkek
+        *Laos	#Vientiane
+        *Latvia	#Riga
+        *Lebanon	#Beirut
+        *Lesotho	#Maseru
+        *Liberia	#Monrovia
+        *Libya	#Tripoli
+        *Liechtenstein	#Vaduz
+        *Lithuania	#Vilnius
+        *Luxembourg	#Luxembourg
+        *Madagascar	#Antananarivo
+        *Malawi	#Lilongwe
+        *Malaysia	#Kuala Lumpur
+        *Maldives	#Male
+        *Mali	#Bamako
+        *Malta	#Valletta
+        *Marshall Islands	#Majuro
+        *Mauritania	#Nouakchott
+        *Mauritius	#Port Louis
+        *Mexico	#Mexico City
+        *Moldova	#Chisinau
+        *Monaco	#Monaco
+        *Mongolia	#Ulaanbaatar
+        *Montenegro	#Podgorica
+        *Morocco	#Rabat
+        *Mozambique	#Maputo
+        *Myanmar	#Nay Pyi Taw
+        *Namibia	#Windhoek
+        *Nauru	#No official capital
+        *Nepal	#Kathmandu
+        *Netherlands	#Amsterdam
+        *New Zealand	#Wellington
+        *Nicaragua	#Managua
+        *Niger	#Niamey
+        *Nigeria	#Abuja
+        *North Korea	#Pyongyang
+        *Macedonia	#Skopje
+        *Ireland	#Belfast
+        *Norway	#Oslo
+        *Oman	#Muscat
+        *Pakistan	#Islamabad
+        *Palau	#Melekeok
+        *Panama	#Panama City
+        *Papua New Guinea	#Port Moresby
+        *Paraguay	#Asuncion
+        *Peru	#Lima
+        *Philippines	#Manila
+        *Poland	#Warsaw
+        *Portugal	#Lisbon
+        *Qatar	#Doha
+        *Romania	#Bucharest
+        *Russia	#Moscow
+        *Rwanda	#Kigali
+        *Saint Kitts and Nevis	#Basseterre
+        *Saint Lucia	#Castries
+        *Saint Vincent and the Grenadines	#Kingstown
+        *Samoa	#Apia
+        *San Marino	#San Marino
+        *Sao Tome and Principe	#Sao Tome
+        *Saudi Arabia	#Riyadh
+        *Scotland	#Edinburgh
+        *Senegal	#Dakar
+        *Serbia	#Belgrade
+        *Seychelles	#Victoria
+        *Sierra Leone	#Freetown
+        *Singapore	#Singapore
+        *Slovakia	#Bratislava
+        *Slovenia	#Ljubljana
+        *Solomon Islands	#Honiara
+        *Somalia	#Mogadishu
+        *South Africa	#Pretoria, Bloemfontein, Cape Town
+        *South Korea	#Seoul
+        *South Sudan	#Juba
+        *Spain	#Madrid
+        *Sri Lanka	#Colombo
+        *Sudan	#Khartoum
+        *Suriname	#Paramaribo
+        *Sweden	#Stockholm
+        *Switzerland	#Bern
+        *Syria	#Damascus
+        *Taiwan	#Taipei
+        *Tajikistan	#Dushanbe
+        *Tanzania	#Dodoma
+        *Thailand	#Bangkok
+        *Togo	#Lome
+        *Tonga	#Nuku'alofa
+        *Trinidad and Tobago	#Port of Spain
+        *Tunisia	#Tunis
+        *Turkey	#Ankara
+        *Turkmenistan	#Ashgabat
+        *Tuvalu	#Funafuti
+        *Uganda	#Kampala
+        *Ukraine	#Kiev
+        *United Arab Emirates	#Abu Dhabi
+        *United Kingdom	#London
+        *United States	#Washington D.C.
+        *Uruguay	#Montevideo
+        *Uzbekistan	#Tashkent
+        *Vanuatu	#Port Vila
+        *Vatican City	#Vatican City
+        *Venezuela	#Caracas
+        *Vietnam	#Hanoi
+        *Wales	#Cardiff
+        *Yemen	#Sana'a
+        *Zambia	#Lusaka
+        *Zimbabwe	#Harare
+        *Asia     #None
+        *Holy see   #None
+        """
+        countries = {}
+        for item in all.split('*'):
+            item = item.strip()
+            data = item.split('#')
+            country = data[0].replace('\t', ' ').strip().lower()
+            capital = data[1].lower()
+
+            value = {country : capital}
+            countries.update(value)
+
+        return countries
+
+    def __init__(self, member:discord.Member):
+        self.name = str(member)
+        self.id = member.id
+        self.mention = member.mention
+        self.lifes = 3
+        self.over_use = 0
+        self.points = 0
+
+    def __repr__(self):
+        return self.name
+    
+    def increase_point(self):
+        self.points = self.points + 1
+
+    def over_used(self):
+        self.over_use = self.over_use + 1
+    
+    def cut_life(self):
+        self.lifes = self.lifes - 1
+    
+    def eliminate(self):
+        Atlas.players.pop(Atlas.players.index(self))
+
+    def jumble():
+        indexes = []
+        jumbled = []
+        spacer = 0
+        for i in range(len(Atlas.players)):
+            jumbled.append(None)
+            indexes.append(spacer)
+            spacer += 1
+        for player in Atlas.players:
+            index = random.choice(indexes)
+            jumbled[index] = player
+            indexes.pop(indexes.index(index))
+
+        Atlas.players = jumbled
+
+    def valid_place(place):
+        places = Atlas.fetch_countries()
+        if place in places.keys():
+            print('Haan sahi place hai')
+            return True
+        elif place in places.values():
+            print('Haan sahi place hai')
+            return True
+        else:
+            possible_correction = SpellChecker().correction(place)
+            if possible_correction in places.keys():
+                print('Haan sahi place hai')
+                return True
+            elif possible_correction in places.values():
+                print('Haan sahi place hai')
+                return True
+            else:
+                print('Galat place hai bsdk')
+                return False
+
+@bot.command()
+async def atlas(ctx):
+    if isinstance(ctx.channel, discord.channel.DMChannel):
+        await ctx.send(embed=Embeds.non_dm_embed())
+
+    else:
+        guild_id = ctx.guild.id
+        if guild_id not in ignored.guilds:
+            ignored.addguild(guild_id)
+        if ctx.author.id in ignored.guilds[guild_id]:
+            return
+        else:
+            embed = discord.Embed(title=f'**Atlas**', description='react on this message with the check to participate ✅')
+            embed.set_footer(icon_url='https://cdn.discordapp.com/emojis/892751786719469598.gif?size=56', text='Good luck')
+            message = await ctx.send(embed=embed)
+            await message.add_reaction('✅')
+        
+            await asyncio.sleep(5)
+
+            await ctx.send('Registration closed')
+            cached_msg = discord.utils.get(bot.cached_messages, id=message.id)
+            for reaction in cached_msg.reactions:
+                if reaction.emoji == '✅':
+                    users = await reaction.users().flatten()
+                    for user in users:
+                        if user.id != winsy_id:
+                            player = Atlas(user)
+                            Atlas.players.append(player)
+            print('Players before jumbled:', Atlas.players)
+
+            Atlas.jumble()
+            print('Players after jumbled:', Atlas.players)
+
+            if Atlas.players == []:
+                await ctx.send('No players reacted, the game is terminated')
+                return
+            elif len(Atlas.players) < 2:
+                await ctx.send('Atleast 2 players are needed to start the game')
+                return
+
+            await ctx.send('Game starts now')
+            pointer = 0
+            first_time = 0
+            last_letter = None
+            while True:
+                if pointer == len(Atlas.players):
+                    pointer = 0
+
+                if len(Atlas.players) == 1:
+                    winner = Atlas.players[0]
+                    for p_w in Atlas.players:
+                        if winner.points < p_w.points:
+                            winner = p_w
+                    await ctx.send('{} is the winner!!'.format(winner.mention))
+                    break
+                else:
+                    if first_time == 0 or last_letter == None:
+                        await ctx.send(f"{player.mention} It's your turn, give a name of a place (country/capital)")
+                        first_time = 1
+                    else:
+                        await ctx.send(f"{player.mention} It's your turn, give a name of a place with the starting letter of **{last_letter}**")
+
+                    def check(m):
+                        return m.author.id == player.id and m.channel == ctx.channel
+                    
+                    try:
+                        message = await bot.wait_for('message', check=check, timeout=10)
+
+                    except asyncio.TimeoutError:
+                        player.cut_life()
+                        if player.lifes <= 0:
+                            player.eliminate()
+                            await ctx.send('{} eliminated'.format(player.mention))
+                        else:
+                            await ctx.send(f'{player.mention} failed to respond in time.')
+                            await ctx.send('Life decreased by **1**\nRemaining life {}'.format(player.lifes))
+                        pointer += 1
+                        continue
+
+                    if message.content.lower() in Atlas.used_places:
+                        await ctx.send('Kitti baar use krega bsdk {}'.format(get_emoji(876025069866999808)))
+                        player.over_used()
+                        if player.over_use == 3:
+                            player.cut_life()
+                            
+
+                    elif Atlas.valid_place(message.content.lower()):
+                        player.increase_point()
+                        Atlas.used_places.append(message.content.lower())
+                        last_letter = message.content.lower()[-1]
+                        await message.add_reaction(get_emoji(892776197887524935))
+                    
+                    else:
+                        if player.lifes == 0:
+                            player.eliminate()
+                        else:
+                            player.cut_life()
+                    print('Last letter:', last_letter)
+                    pointer += 1
+
 
 @bot.command()
 async def amogus(ctx):
@@ -939,11 +1318,11 @@ async def why(ctx, insult:str=None, member:discord.Member=None):
             else:
                 return
 
-@bot.event
-async def on_command_error(ctx, error):
-    channel = bot.get_channel(error_channel_id)
-    embed = discord.Embed(title='Error raised in '+str(ctx.command), description=error, color=color())
-    await channel.send(embed=embed)
+# @bot.event
+# async def on_command_error(ctx, error):
+#     channel = bot.get_channel(error_channel_id)
+#     embed = discord.Embed(title='Error raised in '+str(ctx.command), description=error, color=color())
+#     await channel.send(embed=embed)
 
 all_cogs = os.listdir('./Winsy/cogs')
 for file in all_cogs:
