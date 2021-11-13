@@ -1,9 +1,11 @@
+from datetime import time
 import sqlite3
 import discord
 import random
 import asyncio
 import os
 import bitly_api
+from discord.enums import try_enum
 import requests
 from spellchecker import SpellChecker
 from youtube_dl import YoutubeDL
@@ -663,211 +665,13 @@ async def purge(ctx, amount:int=None):
 
 class Atlas:
     
-    players = []
-    used_places = []
+    Players = []
+    current_player = None
+    Used_places = []
+    End = False
     def fetch_countries():
-        all = """
-        Afghanistan	#Kabul
-        *Albania	#Tirana (Tirane)
-        *Algeria	#Algiers
-        *Andorra	#Andorra la Vella
-        *Angola	#Luanda
-        *Antigua and Barbuda	#Saint John's
-        *Argentina	#Buenos Aires
-        *Armenia	#Yerevan
-        *Australia	#Canberra
-        *Austria	#Vienna
-        *Azerbaijan	#Baku
-        *Bahamas	#Nassau
-        *Bahrain	#Manama
-        *Bangladesh	#Dhaka
-        *Barbados	#Bridgetown
-        *Belarus	#Minsk
-        *Belgium	#Brussels
-        *Belize	#Belmopan
-        *Benin	#Porto Novo
-        *Bhutan	#Thimphu
-        *Bolivia	#La Paz (administrative), Sucre (official)
-        *Bosnia and #Herzegovina	Sarajevo
-        *Botswana	#Gaborone
-        *Brazil	#Brasilia
-        *Brunei	#Bandar Seri Begawan
-        *Bulgaria	#Sofia
-        *Burkina Faso	#Ouagadougou
-        *Burundi	#Gitega
-        *Cambodia	#Phnom Penh
-        *Cameroon	#Yaounde
-        *Canada	#Ottawa
-        *Cape Verde	#Praia
-        *Central African Republic	#Bangui
-        *Chad	#N'Djamena
-        *Chile	#Santiago
-        *China	#Beijing
-        *Colombia	#Bogota
-        *Comoros	#Moroni
-        *Costa Rica	#San Jose
-        *Côte d'Ivoire 	#Yamoussoukro
-        *Croatia	#Zagreb
-        *Cuba	#Havana
-        *Cyprus	#Nicosia
-        *Czech Republic (Czechia)	#Prague
-        *Denmark	#Copenhagen
-        *Djibouti	#Djibouti
-        *Dominica	#Roseau
-        *Dominican Republic	#Santo Domingo
-        *East Timor	#Dili
-        *Ecuador	#Quito
-        *Egypt	#Cairo
-        *El Salvador	#San Salvador
-        *England	#London
-        *Equatorial Guinea	#Malabo
-        *Eritrea	#Asmara
-        *Estonia	#Tallinn
-        *Eswatini	#Mbabana
-        *Ethiopia	#Addis Ababa
-        *Federated States of Micronesia	#Palikir
-        *Fiji	#Suva
-        *Finland	#Helsinki
-        *France	#Paris
-        *Gabon	#Libreville
-        *Gambia	#Banjul
-        *Georgia	#Tbilisi
-        *Germany	#Berlin
-        *Ghana	#Accra
-        *Greece	#Athens
-        *Grenada	#Saint George's
-        *Guatemala	#Guatemala City
-        *Guinea	#Conakry
-        *Guinea-Bissau	#Bissau
-        *Guyana	#Georgetown
-        *Haiti	#Port au Prince
-        *Honduras	#Tegucigalpa
-        *Iceland	#Reykjavik
-        *Hungary	#Budapest
-        *India	#New Delhi
-        *Indonesia	#Jakarta
-        *Iran	#Tehran
-        *Iraq	#Baghdad
-        *Ireland	#Dublin
-        *Israel	#Jerusalem
-        *Italy	#Rome
-        *Jamaica	#Kingston
-        *Japan	#Tokyo
-        *Jordan	#Amman
-        *Kazakhstan	#Nur-Sultan
-        *Kenya	#Nairobi
-        *Kiribati	#Tarawa Atoll
-        *Kosovo	#Pristina
-        *Kuwait	#Kuwait City
-        *Kyrgyzstan	#Bishkek
-        *Laos	#Vientiane
-        *Latvia	#Riga
-        *Lebanon	#Beirut
-        *Lesotho	#Maseru
-        *Liberia	#Monrovia
-        *Libya	#Tripoli
-        *Liechtenstein	#Vaduz
-        *Lithuania	#Vilnius
-        *Luxembourg	#Luxembourg
-        *Madagascar	#Antananarivo
-        *Malawi	#Lilongwe
-        *Malaysia	#Kuala Lumpur
-        *Maldives	#Male
-        *Mali	#Bamako
-        *Malta	#Valletta
-        *Marshall Islands	#Majuro
-        *Mauritania	#Nouakchott
-        *Mauritius	#Port Louis
-        *Mexico	#Mexico City
-        *Moldova	#Chisinau
-        *Monaco	#Monaco
-        *Mongolia	#Ulaanbaatar
-        *Montenegro	#Podgorica
-        *Morocco	#Rabat
-        *Mozambique	#Maputo
-        *Myanmar	#Nay Pyi Taw
-        *Namibia	#Windhoek
-        *Nauru	#No official capital
-        *Nepal	#Kathmandu
-        *Netherlands	#Amsterdam
-        *New Zealand	#Wellington
-        *Nicaragua	#Managua
-        *Niger	#Niamey
-        *Nigeria	#Abuja
-        *North Korea	#Pyongyang
-        *Macedonia	#Skopje
-        *Ireland	#Belfast
-        *Norway	#Oslo
-        *Oman	#Muscat
-        *Pakistan	#Islamabad
-        *Palau	#Melekeok
-        *Panama	#Panama City
-        *Papua New Guinea	#Port Moresby
-        *Paraguay	#Asuncion
-        *Peru	#Lima
-        *Philippines	#Manila
-        *Poland	#Warsaw
-        *Portugal	#Lisbon
-        *Qatar	#Doha
-        *Romania	#Bucharest
-        *Russia	#Moscow
-        *Rwanda	#Kigali
-        *Saint Kitts and Nevis	#Basseterre
-        *Saint Lucia	#Castries
-        *Saint Vincent and the Grenadines	#Kingstown
-        *Samoa	#Apia
-        *San Marino	#San Marino
-        *Sao Tome and Principe	#Sao Tome
-        *Saudi Arabia	#Riyadh
-        *Scotland	#Edinburgh
-        *Senegal	#Dakar
-        *Serbia	#Belgrade
-        *Seychelles	#Victoria
-        *Sierra Leone	#Freetown
-        *Singapore	#Singapore
-        *Slovakia	#Bratislava
-        *Slovenia	#Ljubljana
-        *Solomon Islands	#Honiara
-        *Somalia	#Mogadishu
-        *South Africa	#Pretoria, Bloemfontein, Cape Town
-        *South Korea	#Seoul
-        *South Sudan	#Juba
-        *Spain	#Madrid
-        *Sri Lanka	#Colombo
-        *Sudan	#Khartoum
-        *Suriname	#Paramaribo
-        *Sweden	#Stockholm
-        *Switzerland	#Bern
-        *Syria	#Damascus
-        *Taiwan	#Taipei
-        *Tajikistan	#Dushanbe
-        *Tanzania	#Dodoma
-        *Thailand	#Bangkok
-        *Togo	#Lome
-        *Tonga	#Nuku'alofa
-        *Trinidad and Tobago	#Port of Spain
-        *Tunisia	#Tunis
-        *Turkey	#Ankara
-        *Turkmenistan	#Ashgabat
-        *Tuvalu	#Funafuti
-        *Uganda	#Kampala
-        *Ukraine	#Kiev
-        *United Arab Emirates	#Abu Dhabi
-        *United Kingdom	#London
-        *United States	#Washington D.C.
-        *Uruguay	#Montevideo
-        *Uzbekistan	#Tashkent
-        *Vanuatu	#Port Vila
-        *Vatican City	#Vatican City
-        *Venezuela	#Caracas
-        *Vietnam	#Hanoi
-        *Wales	#Cardiff
-        *Yemen	#Sana'a
-        *Zambia	#Lusaka
-        *Zimbabwe	#Harare
-        *Asia     #None
-        *Holy see   #None
-        """
+        with open('./Winsy/Atlas.txt', 'r') as file:
+            all = file.read()
         countries = {}
         for item in all.split('*'):
             item = item.strip()
@@ -885,58 +689,118 @@ class Atlas:
         self.id = member.id
         self.mention = member.mention
         self.lifes = 3
-        self.over_use = 0
         self.points = 0
 
     def __repr__(self):
         return self.name
     
-    def increase_point(self):
-        self.points = self.points + 1
+    async def increase_point(self, ctx):
+        self.points += 1
+        await ctx.send(f"{self.mention} Correct Answer!!✅")
 
-    def over_used(self):
-        self.over_use = self.over_use + 1
+    async def already_used(self, ctx, place):
+        await self.cut_life(ctx, reason=f'used {place}')
     
-    def cut_life(self):
-        self.lifes = self.lifes - 1
+    async def cut_life(self, ctx, reason:str):
+        self.lifes -= 1
+        if reason == 'incorrect':
+            if self.lifes == 0:
+                await ctx.send(f"{self.mention} Incorrect response")
+                await self.eliminate(ctx)
+            else:
+                await ctx.send(f"{self.mention} Incorrect response, life decreased by 1\nTotal lifes left **{self.lifes}**")
+        elif reason == 'timeout':
+            if self.lifes == 0:
+                await ctx.send(f"{self.mention}You failed to respond within time")
+                await self.eliminate(ctx)
+            else:
+                await ctx.send(f"{self.mention} You failed to respond within time, life decreased by 1\nTotal lifes ")
+        elif reason.startswith('used'):
+            if self.lifes == 0:
+                await ctx.send(f"{self.mention} ***{reason[5:]}*** is already used by someone")
+                await self.eliminate(ctx)
+            else:
+                await ctx.send(f"{self.mention} ***{reason[5:]}*** is already used by someone, you can't use it again, life decreased by 1")            
+
+    async def eliminate(self, ctx):
+        Atlas.Players.pop(Atlas.Players.index(self))
+        await ctx.send(f"{self.mention} You're eliminated from the game.")
+        if len(Atlas.Players) == 1:
+            await Atlas.won(ctx, Atlas.Players[0])
     
-    def eliminate(self):
-        Atlas.players.pop(Atlas.players.index(self))
+    def used(place):
+        Atlas.Used_places.append(place)
 
     def jumble():
         indexes = []
         jumbled = []
         spacer = 0
-        for i in range(len(Atlas.players)):
+        for i in range(len(Atlas.Players)):
             jumbled.append(None)
             indexes.append(spacer)
             spacer += 1
-        for player in Atlas.players:
+        for player in Atlas.Players:
             index = random.choice(indexes)
             jumbled[index] = player
             indexes.pop(indexes.index(index))
 
-        Atlas.players = jumbled
+        Atlas.Players = jumbled
 
-    def valid_place(place):
+    def valid_place(place:str):
         places = Atlas.fetch_countries()
-        if place in places.keys():
+        if place.lower() in places.keys():
             print('Haan sahi place hai')
             return True
-        elif place in places.values():
+        elif place .lower() in places.values():
             print('Haan sahi place hai')
             return True
         else:
             possible_correction = SpellChecker().correction(place)
-            if possible_correction in places.keys():
+            if possible_correction.lower() in places.keys():
                 print('Haan sahi place hai')
                 return True
-            elif possible_correction in places.values():
+            elif possible_correction.lower() in places.values():
                 print('Haan sahi place hai')
                 return True
             else:
                 print('Galat place hai bsdk')
                 return False
+
+    async def start(ctx):
+        Atlas.current_player = Atlas.Players[0]
+        await ctx.send(f"{Atlas.current_player.mention} It's your turn, start the game by giving a name of a country or capital")
+        def check(m):
+            return m.channel.id == ctx.channel.id and m.author.id == Atlas.current_player.id
+        try:
+            response = await bot.wait_for('message', check=check, timeout=10)
+            return response.content
+        except asyncio.TimeoutError:
+            return None
+
+    async def ask(ctx, last_letter:str):
+        await ctx.send(f"{Atlas.current_player.mention} Give a name of a country or a capital by the starting letter of ***{last_letter.upper()}***")
+        def check(m):
+            return m.channel.id == ctx.channel.id and m.author.id == Atlas.current_player.id
+        try:
+            response = await bot.wait_for('message', check=check, timeout=10)
+            return response.content
+        except asyncio.TimeoutError:
+            return None
+
+    async def won(ctx, player):
+        Atlas.End = True
+        await ctx.send(f"{player.mention} You've won the game!!")
+
+    async def correct_response(ctx):
+        await Atlas.current_player.increase_point(ctx)
+        if Atlas.current_player.points == 3:
+            await Atlas.won(ctx, Atlas.current_player)
+
+    async def wrong_response(ctx):
+        await Atlas.current_player.cut_life(ctx, reason='incorrect')
+
+    async def timeout(ctx):
+        await Atlas.current_player.cut_life(ctx, reason='timeout')
 
 @bot.command()
 async def atlas(ctx):
@@ -965,79 +829,61 @@ async def atlas(ctx):
                     for user in users:
                         if user.id != winsy_id:
                             player = Atlas(user)
-                            Atlas.players.append(player)
-            print('Players before jumbled:', Atlas.players)
-
+                            Atlas.Players.append(player)
+            print('Players before jumbled:', Atlas.Players)
             Atlas.jumble()
-            print('Players after jumbled:', Atlas.players)
+            print('Players after jumbled:', Atlas.Players)
 
-            if Atlas.players == []:
-                await ctx.send('No players reacted, the game is terminated')
-                return
-            elif len(Atlas.players) < 2:
-                await ctx.send('Atleast 2 players are needed to start the game')
-                return
+            if Atlas.Players == []:
+                await ctx.send('No players reacted, the game is terminated.')
+                
+            elif len(Atlas.Players) < 2:
+                await ctx.send('Atleast 2 players are needed to start the game.')
 
-            await ctx.send('Game starts now')
-            pointer = 0
-            first_time = 0
-            last_letter = None
-            while True:
-                if pointer == len(Atlas.players):
-                    pointer = 0
+            else:
+                await ctx.send('Game starts now!!')
 
-                if len(Atlas.players) == 1:
-                    winner = Atlas.players[0]
-                    for p_w in Atlas.players:
-                        if winner.points < p_w.points:
-                            winner = p_w
-                    await ctx.send('{} is the winner!!'.format(winner.mention))
-                    break
+                first_reply = await Atlas.start(ctx)
+                if first_reply != None:
+                    if Atlas.valid_place(first_reply):
+                        Atlas.used(first_reply)
+                        await Atlas.correct_response(ctx)
+                    else:
+                        await Atlas.wrong_response(ctx)
                 else:
-                    if first_time == 0 or last_letter == None:
-                        await ctx.send(f"{player.mention} It's your turn, give a name of a place (country/capital)")
-                        first_time = 1
-                    else:
-                        await ctx.send(f"{player.mention} It's your turn, give a name of a place with the starting letter of **{last_letter}**")
+                    await Atlas.timeout(ctx)
 
-                    def check(m):
-                        return m.author.id == player.id and m.channel == ctx.channel
-                    
-                    try:
-                        message = await bot.wait_for('message', check=check, timeout=10)
-
-                    except asyncio.TimeoutError:
-                        player.cut_life()
-                        if player.lifes <= 0:
-                            player.eliminate()
-                            await ctx.send('{} eliminated'.format(player.mention))
+                Pointer = 1
+                First = True
+                Last_letter = None
+                while True:
+                    if Atlas.End == False:
+                        if Pointer == len(Atlas.Players):
+                            Pointer = 0
+                        
+                        Atlas.current_player = Atlas.Players[Pointer]
+                        if First:  
+                            Response = await Atlas.ask(ctx, last_letter=first_reply[-1])
+                            Last_letter = first_reply[-1]
+                            First = False
                         else:
-                            await ctx.send(f'{player.mention} failed to respond in time.')
-                            await ctx.send('Life decreased by **1**\nRemaining life {}'.format(player.lifes))
-                        pointer += 1
-                        continue
+                            Response = await Atlas.ask(ctx, last_letter=Last_letter)
 
-                    if message.content.lower() in Atlas.used_places:
-                        await ctx.send('Kitti baar use krega bsdk {}'.format(get_emoji(876025069866999808)))
-                        player.over_used()
-                        if player.over_use == 3:
-                            player.cut_life()
-                            
-
-                    elif Atlas.valid_place(message.content.lower()):
-                        player.increase_point()
-                        Atlas.used_places.append(message.content.lower())
-                        last_letter = message.content.lower()[-1]
-                        await message.add_reaction(get_emoji(892776197887524935))
-                    
-                    else:
-                        if player.lifes == 0:
-                            player.eliminate()
+                        print("Response: {}".format(Response))
+                        if Response != None:
+                            if Response in Atlas.Used_places:
+                                await Atlas.current_player.already_used(ctx, Response)
+                            elif Atlas.valid_place(Response):
+                                Atlas.used(Response)
+                                await Atlas.correct_response(ctx)
+                            else:
+                                await Atlas.wrong_response(ctx)
                         else:
-                            player.cut_life()
-                    print('Last letter:', last_letter)
-                    pointer += 1
+                            await Atlas.timeout(ctx)
 
+                        Pointer += 1
+                    else:
+                        break
 
 @bot.command()
 async def amogus(ctx):
