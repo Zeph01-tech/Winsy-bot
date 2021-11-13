@@ -1,11 +1,9 @@
-from datetime import time
 import sqlite3
 import discord
 import random
 import asyncio
 import os
 import bitly_api
-from discord.enums import try_enum
 import requests
 from spellchecker import SpellChecker
 from youtube_dl import YoutubeDL
@@ -697,6 +695,8 @@ class Atlas:
     async def increase_point(self, ctx):
         self.points += 1
         await ctx.send(f"{self.mention} Correct Answer!!✅")
+        if self.points == 10:
+            await Atlas.won(ctx, Atlas.current_player)
 
     async def already_used(self, ctx, place):
         await self.cut_life(ctx, reason=f'used {place}')
@@ -793,8 +793,6 @@ class Atlas:
 
     async def correct_response(ctx):
         await Atlas.current_player.increase_point(ctx)
-        if Atlas.current_player.points == 3:
-            await Atlas.won(ctx, Atlas.current_player)
 
     async def wrong_response(ctx):
         await Atlas.current_player.cut_life(ctx, reason='incorrect')
