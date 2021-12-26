@@ -6,7 +6,6 @@ import os
 import bitly_api
 import requests
 from spellchecker import SpellChecker
-from yarl import cache_info
 from youtube_dl import YoutubeDL
 from discord.ext import commands
 from discord.ext.commands import has_permissions
@@ -18,6 +17,7 @@ from discord_slash.context import MenuContext
 from discord_slash.model import ContextMenuType
 
 bot = commands.Bot(command_prefix=commands.when_mentioned_or("T ", "t "))
+slash = SlashCommand(bot, sync_commands=True)
 bot.remove_command('help')
 
 conn = sqlite3.connect("./Winsy_/Winsy.db")
@@ -94,11 +94,11 @@ async def shorten_url(url):
 
 async def register_server(guild):
     cursor = conn.cursor()
-    data = cursor.execute("""SELECT * FROM Guilds""").fetchall()
+    data = cursor.execute("""SELECT * FROM My_Guilds""").fetchall()
     for guild_data in data:
         if guild_data[-1] == guild.id:
             return
-    cursor.execute("""INSERT INTO Guilds (Guild_Name, Guild_ID) VALUES (?, ?)""", [guild.name, guild.id])
+    cursor.execute("""INSERT INTO My_Guilds (Guild_Name, Guild_ID) VALUES (?, ?)""", [guild.name, guild.id])
     conn.commit()
 
 @bot.event
@@ -663,12 +663,8 @@ async def unmute(ctx, member:discord.Member=None):
                 await ctx.send(f"Unmuted {member.mention} {get_emoji(random.choice([775398330150813736, 876032718486507591, 894576946321694751, 876025887039049738]))}")
 
 @bot.command()
-async def test(ctx):
-    await ctx.send(ctx.author.roles)
-
-@bot.command()
 @has_permissions(manage_roles=True)
-async def purge(ctx, amount:int=None):
+async def purge(ctx, amount:int=None, slash=False):
     if isinstance(ctx.channel, discord.channel.DMChannel):
         await ctx.send(embed=Embeds.non_dm_embed())
         
@@ -679,10 +675,16 @@ async def purge(ctx, amount:int=None):
         if ctx.author.id in ignored.guilds[guild_id]:
             return
         else:
-            if amount == None:
-                await ctx.send("Mention the amount of messages you want to purge")
+            if slash:
+                await ctx.channel.purge(limit=amount)
+                message = await ctx.send("Successfully purged {} messages".format(amount))
+                await asyncio.sleep(4)
+                await message.delete()
             else:
-                await ctx.channel.purge(limit=amount+1)
+                if amount == None:
+                    await ctx.send("Mention the amount of messages you want to purge")
+                else:
+                    await ctx.channel.purge(limit=amount+1)
 
 class Atlas:
     
@@ -1189,7 +1191,7 @@ async def why(ctx, insult:str=None, member:discord.Member=None):
             else:
                 return
 
-all_cogs = os.listdir('./Winsy/cogs')
+all_cogs = os.listdir('./Winsy_/cogs')
 for file in all_cogs:
     if file.endswith('.py'):
         bot.load_extension(f'cogs.{file[:-3]}')
