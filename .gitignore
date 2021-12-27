@@ -1,4 +1,6 @@
 TOKENS/
-*_pychache_/
+./Winsy_/_pychache_/*
+./Winsy_/cogs/_pychache_/*
 bro_fist/
-*.db
+./Winsy_/*.db
+./*.db
