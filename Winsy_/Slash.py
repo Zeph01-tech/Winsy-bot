@@ -46,7 +46,7 @@ async def _ping(ctx: SlashContext):
 async def _purge(ctx: SlashContext, amount: int=None):
     await Winsy.purge(ctx, amount=amount, slash=True)
 
-with open('./TOKENS/bot_token.txt', 'r') as file:
+with open('./TOKENS/token.txt', 'r') as file:
     TOKEN = file.read()
 
 bot.run(TOKEN)
