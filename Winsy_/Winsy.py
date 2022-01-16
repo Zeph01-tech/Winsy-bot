@@ -5,25 +5,31 @@ import asyncio
 import os
 import bitly_api
 import requests
-from spellchecker import SpellChecker
 from youtube_dl import YoutubeDL
+from youtube_search import YoutubeSearch
+from spellchecker import SpellChecker
 from discord.ext import commands
 from discord.ext.commands import has_permissions
 from discord_slash import SlashCommand, SlashContext
 from discord_slash.utils.manage_commands import create_choice, create_option
-from discord_slash.utils.manage_components import create_button, create_actionrow
+from discord_slash.utils.manage_components import create_select, create_select_option
+from discord_slash.utils.manage_components import create_button, create_actionrow, wait_for_component
 from discord_slash.model import ButtonStyle
-from discord_slash.context import MenuContext
+from discord_slash.context import ComponentContext, MenuContext
 from discord_slash.model import ContextMenuType
 
-bot = commands.Bot(command_prefix=commands.when_mentioned_or("T ", "t "))
+intents = discord.Intents.all()
+intents.members = True
+intents.guilds = True
+bot = commands.Bot(command_prefix=commands.when_mentioned_or("T ", "t "), case_sensitive=True, intents=intents)
 slash = SlashCommand(bot, sync_commands=True)
 bot.remove_command('help')
 
-conn = sqlite3.connect("./Winsy_/Winsy.db")
+conn = sqlite3.connect("./Winsy_/Winsy_main.db")
 
 my_id = 762372102204030986
 winsy_id = 873504810278739988
+chizu_id = 896826940328128523
 
 my_server_id = 762380604058632222
 
@@ -34,6 +40,17 @@ good_night_replies = ["**Oyasumi!**", "**Night!**", "**Have a great night**", "*
 
 good_night_gifs = ["https://c.tenor.com/3fAZZncIHDQAAAAC/smile-anime.gif", "https://c.tenor.com/ouo5podnrgUAAAAS/cuddle-love.gif", "https://c.tenor.com/01cElrH1Ed8AAAAS/anime-shiro.gif", "https://c.tenor.com/Bn_E6t9-m_wAAAAC/sleeping-kiss.gif", "https://c.tenor.com/3eouI6QChiEAAAAC/anime-cuteness.gif", "https://c.tenor.com/tVBrvOB5ttkAAAAC/11-sad.gif"]
 laugh_command_gifs = ["https://cdn.discordapp.com/attachments/873552851157254144/874619767749758986/hehe.gif", "https://c.tenor.com/fqRNsILmXHQAAAAC/anime-girl.gif", "https://cdn.discordapp.com/attachments/873552851157254144/874620123930038282/natsu-lol.gif", "https://c.tenor.com/qEfogXAprQoAAAAC/nichijou-laughing.gif", "https://c.tenor.com/fbWCY-1exTsAAAAS/bokura-wa-minna-kawaisou-gifs-to-reaction.gif"]
+
+def fetch_guilds():
+    cursor = conn.cursor()
+    data = cursor.execute("""SELECT * FROM My_Guilds""").fetchall()
+    guilds = []
+    for guild_data in data:
+        guilds.append(guild_data[-1])
+
+    return guilds
+
+all_guilds = fetch_guilds()
 
 class Embeds:
     def command_cancelled():
@@ -65,6 +82,13 @@ async def fetch_roasts(member_id):
     dict = {"roasts" : roasts, "type" : type}
     return dict
 
+def yt_quality_options(dict):
+    quality_options = []
+    for key in dict:
+        quality_options.append(create_select_option(label=f"{key}. {dict[key]['quality']} ({dict[key]['size']})", value=str(key)))
+    
+    return quality_options
+
 async def embed_maker(dict=None, link=None):
     if dict != None:
         dialouge = "**All the available qualities, send an index of the quality you want.**"
@@ -86,7 +110,6 @@ async def embed_maker(dict=None, link=None):
 async def shorten_url(url):
     with open('./TOKENS/bitly_token.txt', 'r') as file:
         token = file.read()
-
     conn = bitly_api.Connection(access_token=token)
     reponse = conn.shorten(url)
     new_url = reponse['url']
@@ -130,7 +153,7 @@ async def help(ctx, *, category = None):
         embed = discord.Embed(title="***Mention commands***", description="All mention commands.", color=color())
         embed.add_field(name="`gae <user mention> Possible aliase(s): 'gay'", value="*Gives the gay percentage of the mentioned user*", inline=False)
         embed.add_field(name="`roast <user mention>`", value="*Sends a random roast to the mentioned user*", inline=False)
-        embed.add_field(name="`spam <number of times> <user mention> <message(if any)>`", value="*Spams the message along with the mentioned user*", inline=False)
+        embed.add_field(name="`spam <user mention> <message(if any)>`", value="*Spams the message along with the mentioned user*", inline=False)
         embed.add_field(name="`poop at <user mention>`", value="*Poops in the dm of the mentioned user*", inline=True)
         await ctx.send(embed=embed)
         await ctx.message.delete()
@@ -224,28 +247,28 @@ class ignored:
 
 @bot.command(aliases=['iol'])
 async def ignoreownerlist(ctx):
-        if isinstance(ctx.channel, discord.channel.DMChannel):
-            await ctx.send(embed=Embeds.non_dm_embed())
+    if isinstance(ctx.channel, discord.channel.DMChannel):
+        await ctx.send(embed=Embeds.non_dm_embed())
 
+    else:
+        guild_id = ctx.guild.id
+        if guild_id not in ignored.guilds:
+            ignored.addguild(guild_id)
+        if ctx.author.id in ignored.guilds[guild_id]:
+            return
         else:
-            guild_id = ctx.guild.id
-            if guild_id not in ignored.guilds:
-                ignored.addguild(guild_id)
-            if ctx.author.id in ignored.guilds[guild_id]:
-                return
-            else:
-                embed = discord.Embed(title='**Owner list**', color=discord.Color.dark_red())
-                ctr = 1
-                dialouge = ''
-                for id in ignoreable.members:
-                    try:
-                        owner = await ctx.guild.fetch_member(id)
-                        dialouge += f'{ctr}. *{owner.name}*\n'
-                        ctr += 1
-                    except:
-                        pass
-                embed.add_field(name=f'List of all owners of `ignore` cmd {get_emoji(876032718486507591)}', value=dialouge, inline=False)
-                await ctx.send(embed=embed)
+            embed = discord.Embed(title='**Owner list**', color=discord.Color.dark_red())
+            ctr = 1
+            dialouge = ''
+            for id in ignoreable.members:
+                try:
+                    owner = await ctx.guild.fetch_member(id)
+                    dialouge += f'{ctr}. *{owner.name}*\n'
+                    ctr += 1
+                except:
+                    pass
+            embed.add_field(name=f'List of all owners of `ignore` cmd {get_emoji(876032718486507591)}', value=dialouge, inline=False)
+            await ctx.send(embed=embed)
 
 @bot.command(aliases=['addio'])
 async def addignoreowner(ctx, member:discord.Member=None):
@@ -315,7 +338,7 @@ async def ignorelist(ctx):
                     await ctx.send(embed=embed)
 
 @bot.command()
-async def ignore(ctx: commands.Context, member:discord.Member=None):
+async def ignore(ctx, member:discord.Member=None):
     if isinstance(ctx.channel, discord.channel.DMChannel):
         await ctx.send(embed=Embeds.non_dm_embed())
 
@@ -410,12 +433,14 @@ async def insta(ctx, url:str=None):
                 await ctx.send(f'Provide a URL {get_emoji(885592462599536701)}')
             else:
                 message = await ctx.send('Checking the URL')
-                if url.startswith('https://www.instagram.com/p') == False and url.startswith('https://www.instagram.com/reel') == False and url.startswith('https://www.instagram.com/tv') == False:
+                if url.startswith('https://www.instagram.com/') == False:
                     await message.edit(content=f'The URL which was specified was either not a insta URL or an unexpected URL or maybe {get_emoji(774297843094782013)}')
+                elif 'audio' in url:
+                    await message.edit(content=f"I don't process audio...for now that is {get_emoji(921055619199422485)}")
                 else:
                     await message.edit(content=f'{get_emoji(892750347599233034)} Processing your request, this may take some time.....')
                     try:
-                        api = 'https://dl.instavideosave.com/allinone'
+                        api = 'https://instaapi.glitch.me/allinone'
 
                         headers = {'url' : url}
 
@@ -435,7 +460,19 @@ async def insta(ctx, url:str=None):
                             await message.delete()
                             await ctx.send(embed=embed)
                         except:
-                            await message.edit(content=f"The post is either from a private account or invalid url {get_emoji(885592462599536701)}")
+                            await message.edit(content=f"Couldn't fetch the requsted video, please invoke the command again and try {get_emoji(928317890208333955)}")
+
+async def get_channel_info(url):
+    results = YoutubeSearch(search_terms=url, max_results=1).to_dict()
+    return results[0]
+
+def yt_embed(channel_info, dialouge=None):
+    embed = discord.Embed(
+                        title=title, 
+                        description=f'```py\nName: {title}\n\nViews: {channel_info["views"]}\n\n\n{dialouge}```',
+                        color=discord.Color.red()
+             ).set_thumbnail(url=f"https://img.youtube.com/vi/{vid_id}/hqdefault.jpg").set_footer(text="By {}".format(channel_info['channel']))
+    return embed
 
 @bot.command()
 async def yt(ctx, url:str=None):
@@ -445,16 +482,10 @@ async def yt(ctx, url:str=None):
         index = 1
         for key in vids_dict:
             in_dict = vids_dict[key]
-            if in_dict['q'] != 'auto':
-                value = {index :{'quality': in_dict['q'], 'size' : in_dict['size'], 'url' : in_dict['k']}}
-                new_dict.update(value)
-                index += 1
+            new_dict.update({index :{'quality': in_dict['q'], 'size' : in_dict['size'], 'ftype' : in_dict['f']}})
+            index += 1
 
         return new_dict
-
-    def fetch_key(dict):
-        for i in dict:
-            return i
 
     if isinstance(ctx.channel, discord.channel.DMChannel):
         await ctx.send(embed=Embeds.non_dm_embed())
@@ -471,92 +502,101 @@ async def yt(ctx, url:str=None):
 
             else:
                 message = await ctx.send('Checking the URL...')
-                if url.startswith('https://youtu.be/') == False and url.startswith('https://youtube.com/shorts/') == False:
+                if url.startswith('https://youtu.be/') == False and url.startswith('https://youtube.com/shorts/') == False and url.startswith('https://www.youtube.com/') == False:
                     await message.edit(content='Invalid url for this command.')
                     return   
                 else:
                     await message.edit(content='Fetching all the available formats of the video....')
-                try:
-                    api = "https://yt1s.com/api/ajaxSearch/index"
-                    data = {'q' : url, 'vt' : 'home'}
-                    response = requests.post(api, data=data).json()
-                    audios_key_dict = response['links']['mp3']
-                    audios_dict = audios_key_dict[fetch_key(audios_key_dict)]
-                    vid_id = response['vid']
-                    videos_dict = vid_dict_maker(response['links']['mp4'])
-                    embed = discord.Embed(description='In which format do you want to download the file:\n **1.** *Mp4(Video)*\n**2.** *Mp3(Audio)*')
-                    await message.edit(embed=embed, content="")
-                    def check1(m):
-                        return m.author.id == ctx.author.id and m.channel == ctx.message.channel
-
                     try:
-                        format_req = await bot.wait_for('message', check=check1, timeout=10)
-                        choice = format_req.content
-                    except asyncio.TimeoutError:
-                        await message.delete()
-                        await ctx.send('You failed to respond in time')
-                        return
-                    try:
-                        int(choice)
+                        api = "https://yt1s.io/api/ajaxSearch"
+                        data = {'q' : url, 'vt' : 'home'}
+                        response = requests.post(api, data=data).json()
+                        global vid_id, title
+                        vid_id = response['vid']
+                        title = response['title']
+                        videos_dict = vid_dict_maker(response['links']['mp4'])
+                        channel_info = await get_channel_info(url=url)
+                        embed = yt_embed(channel_info=channel_info, dialouge="Pick a format for the file👇")
+                        list = create_select(
+                                options=[
+                                    create_select_option(label='1. Mp4 (Video)', value='1'),
+                                    create_select_option(label='2. Mp3 (Audio)', value='2')
+                                ],
+                                placeholder='Choose the format',
+                                max_values=1,
+                                min_values=1
+                            )
+                        action_row = create_actionrow(list)
+                        await message.edit(embed=embed, content="", components=[action_row])
+                        def check(action):
+                            return action.author_id == ctx.author.id
 
-                    except:
-                        await ctx.send("Bro I'm asking for indexes here")
-                        return
-                    if choice != '1' and choice != '2':
-                        await message.delete()
-                        await ctx.send("Invalid index given")
-                    else:
-                        if choice == '1':
-                            embed = await embed_maker(dict=videos_dict)
-                            await format_req.delete()
-                            await message.edit(embed=embed, content="")
-                            def check2(m):
-                                return m.author.id == ctx.author.id and m.channel == ctx.message.channel
+                        try:
+                            format_req_ctx: ComponentContext = await wait_for_component(client=bot, components=action_row,check=check, timeout=20)
+                            choice = int(format_req_ctx.values[0])
+                        except asyncio.TimeoutError:
+                            await message.delete()
+                            await ctx.send('You failed to respond in time')
+                            return
 
+                        if choice == 1:
+                            list = create_select(
+                                options=yt_quality_options(dict=videos_dict),
+                                placeholder='Available Qualities',
+                                min_values=1,
+                                max_values=1
+                            )
+                            embed = yt_embed(channel_info=channel_info, dialouge='Choose the quality of the video you desire to download')
+                            action_row = create_actionrow(list)
+                            await format_req_ctx.edit_origin(components=[action_row], embed=embed)
                             try:
-                                quality_req = await bot.wait_for('message', check=check2, timeout=10)
-
+                                quality_req_ctx: ComponentContext = await wait_for_component(client=bot, components=action_row, check=check, timeout=20)
+                                embed = yt_embed(channel_info=channel_info, dialouge="Processing your yt video with the desired quality...")
+                                await quality_req_ctx.edit_origin(embed=embed, components=[])
                             except asyncio.TimeoutError:
                                 await message.delete()
                                 await ctx.send('You failed to respond in time')
                                 return
-
+                            index = int(quality_req_ctx.values[0])
+                            data = {
+                                'v_id' : vid_id, 
+                                'ftype' : videos_dict[index]['ftype'], 
+                                'fquality' : videos_dict[index]['quality'], 
+                                'fname' : response['fn'], 
+                                'token' : response['token'], 
+                                'timeExpire' : response['timeExpires']
+                            }
                             try:
-                                index = int(quality_req.content)
-
-                            except:
-                                await message.delete()
-                                await ctx.send("Bro I'm asking for indexes here.")
-                                return
-                            if index not in videos_dict:
-                                await ctx.send('Invalid index given')
-                            else:
-                                await quality_req.delete()
-                                await message.delete()
-                                message_ = await ctx.send('Processing your yt video with the desired quality...')
-                                req_url = videos_dict[index]['url']
-                                data = {'vid' : vid_id, 'k' : req_url}
-                                api = "https://yt1s.com/api/ajaxConvert/convert"
+                                api = "https://dsfdsf2.kahagdddae.xyz/api/json/convert"
                                 response = requests.post(api, data=data).json()
-                                d_link = await shorten_url(response['dlink'])
-                                embed = await embed_maker(link=d_link + 'video')
-                                await message_.delete()
-                                await ctx.send(embed=embed)
-                        elif choice == '2':
-                            await format_req.delete()
-                            await message.delete()
-                            YTDL_OPTIONS = {'format': 'bestaudio','cookiefile':'./cookie.txt'}
+                                buttons = [
+                                    create_button(label='Download', style=ButtonStyle.URL, url=await shorten_url(response['result']))
+                                ]
+                                action_row = create_actionrow(*buttons)
+                                embed = yt_embed(channel_info=channel_info, dialouge="Here's the Download button for the video you searched for✅")
+                                await message.edit(embed=embed, components=[action_row])
+                            except Exception as e:
+                                embed = discord.Embed(description='An error occured while parsing the url, please use the command again and on the account of meeting the issue again, try the cmd with a lower quality.\nSorry for inconvinience.', color=0xe80e32)
+                                await message.edit(embed=embed)
+                                channel = bot.get_channel(error_channel_id)
+                                embed = discord.Embed(title='Error raised in '+str(ctx.command), description=e, color=color())
+                                await channel.send(embed=embed)
+                        elif choice == 2:
+                            YTDL_OPTIONS = {'format' : 'bestaudio', 'cookiefile' : './cookie.txt'}
                             with YoutubeDL(YTDL_OPTIONS) as ytdl:
                                 info = ytdl.extract_info(url, download=False)
-                            d_link = await shorten_url(info['formats'][0]['url'])
-                            embed = await embed_maker(link=d_link + 'audio')
-                            await ctx.send(embed=embed)
-                except:
-                    await message.edit('Seems the like servers are down')
+                            d_link = info['formats'][0]['url']
+                            buttons = [
+                                create_button(label='Download', style=ButtonStyle.URL, url=await shorten_url(url=d_link))
+                            ]
+                            action_row = create_actionrow(*buttons)
+                            await format_req_ctx.edit_origin(content="", components=[action_row], embed=embed)
+                    except:
+                        await message.edit(content="Kuch error aya hai, mere owner ko gaali de", embed=None, components=[])
 
 @commands.cooldown(1, 30, commands.BucketType.user)
 @bot.command()
-async def spam(ctx, times=None, member:discord.Member=None, *, message=None):
+async def spam(ctx, member:discord.Member=None, *, message=""):
     if isinstance(ctx.channel, discord.channel.DMChannel):
         await ctx.send(embed=Embeds.non_dm_embed())
         
@@ -567,31 +607,12 @@ async def spam(ctx, times=None, member:discord.Member=None, *, message=None):
         if ctx.author.id in ignored.guilds[guild_id]:
             return
         else:
-            try:
-                int(times)
-                if message is None:
-                    if member.id != winsy_id:
-                        if int(times) <= 10:
-                            for msg in range(1, int(times)+1):
-                                await ctx.send(f"{member.mention}")
-                        else:
-                            await ctx.send("Maximum spam limit is 10 times")
+            if member.id != winsy_id:
+                for msg in range(10):
+                    await ctx.send(f'{member.mention} {message}')
 
-                    else:
-                        await ctx.send(random.choice(['How foolish of you to make me spam myself.', "I don't have time to listen to your shitty request.", "Go study, atleast that'll prove to be usefull"]))
-                else:
-                    if member.id != winsy_id:
-                        if int(times) <= 10:
-                            for msg in range(1, int(times)+1):
-                                await ctx.send(f"{member.mention} {message}")
-                        else:
-                            await ctx.send("Maximum spam limit is 10 times")
-
-                    else:
-                        await ctx.send(random.choice(['How foolish of you to make me spam myself.', "I don't have time to listen to your shitty request.", "Go study, atleast that'll prove to be usefull"]))
-
-            except:
-                await ctx.send("Use the command in this way `winsy spam <times> <user mention> <message(optional)>`")
+            else:
+                await ctx.send(random.choice(['How foolish of you to make me spam myself.', "I don't have time to listen to your shitty request.", "Go study, atleast that'll prove to be usefull"]))
 
 @spam.error
 async def command_name_error(ctx, error):
@@ -610,6 +631,9 @@ async def kick(ctx, member:discord.Member=None, *,reason:str=None):
             await ctx.send("Mention a user to kick")
         elif reason is None:
             await ctx.send("You need to provide a reason to kick someone")
+        elif member.id == my_id or member.id == chizu_id:
+            await ctx.send(f"Can't kick {member.mention} as they are one of the VIPs {get_emoji(881253669083955221)}")
+            
         else:
             await ctx.send(f"{ctx.author.mention} Do you confirm to kick {member.mention} from this server?\nReply with yes/y or no/n")
 
@@ -628,39 +652,53 @@ async def kick(ctx, member:discord.Member=None, *,reason:str=None):
                 await ctx.send(embed=Embeds.command_cancelled())
 
 @bot.command()
-@has_permissions(kick_members=True)
 async def mute(ctx, member:discord.Member=None):
     if isinstance(ctx.channel, discord.channel.DMChannel):
         await ctx.send(embed=Embeds.non_dm_embed())
         
     else:
-        if member is None:
-            await ctx.send("Mention a user to mute")
-        else:
-            role = discord.utils.get(ctx.guild.roles, name='mute')
-            if role is None:
-                embed = discord.Embed(description="You need to make a 'mute' role in your server and set it's permissions to function accordingly")
-                await ctx.send(embed=embed)
+        if ctx.author.id == ctx.guild.owner_id or ctx.author.id == my_id:
+            if member is None:
+                await ctx.send("Mention a user to mute")
             else:
-                await member.add_roles(role)
-                await ctx.send(f"Muted {member.mention} {get_emoji(774296198211043329)}")
+                role = discord.utils.get(ctx.guild.roles, name='mute')
+                if role is None:
+                    role = discord.utils.get(ctx.guild.roles, name='muted')
+                    if role is None:
+                        embed = discord.Embed(description='Found no mute roles in the server')
+                        await ctx.send(embed=embed)
+                    else:
+                        await member.add_roles(role)
+                        await ctx.send(f"Muted {member.mention} {get_emoji(774296198211043329)}")
+                else:
+                    await member.add_roles(role)
+                    await ctx.send(f"Muted {member.mention} {get_emoji(774296198211043329)}")
+        else:
+            await ctx.send("You're missing permissions to use this command.")
 
 @bot.command()
-@has_permissions(kick_members=True)
 async def unmute(ctx, member:discord.Member=None):
     if isinstance(ctx.channel, discord.channel.DMChannel):
         await ctx.send(embed=Embeds.non_dm_embed())
         
     else:
-        if member is None:
-            await ctx.send("Mention a user to unmute")
-        else:
-            role = discord.utils.get(member.roles, name="mute")
-            if role is None:
-                await ctx.send(f"{member.mention} is not muted {get_emoji(876025069866999808)}")
+        if ctx.author.id == ctx.guild.owner_id or ctx.author.id == my_id:
+            if member is None:
+                await ctx.send("Mention a user to unmute")
             else:
-                await member.remove_roles(role)
-                await ctx.send(f"Unmuted {member.mention} {get_emoji(random.choice([775398330150813736, 876032718486507591, 894576946321694751, 876025887039049738]))}")
+                role = discord.utils.get(member.roles, name='mute')
+                if role is None:
+                    role = discord.utils.get(member.roles, name='muted')
+                    if role is None:
+                        await ctx.send(f"{member.mention} is not muted {get_emoji(876025069866999808)}")
+                    else:
+                        await member.remove_roles(role)
+                        await ctx.send(f"Unmuted {member.mention} {get_emoji(random.choice([775398330150813736, 876032718486507591, 894576946321694751, 876025887039049738]))}")
+                else:
+                    await member.remove_roles(role)
+                    await ctx.send(f"Unmuted {member.mention} {get_emoji(random.choice([775398330150813736, 876032718486507591, 894576946321694751, 876025887039049738]))}")
+        else:
+            await ctx.send("You're missing permissions to use this command.")
 
 @bot.command()
 @has_permissions(manage_roles=True)
@@ -677,14 +715,13 @@ async def purge(ctx, amount:int=None, slash=False):
         else:
             if slash:
                 await ctx.channel.purge(limit=amount)
-                message = await ctx.send("Successfully purged {} messages".format(amount))
-                await asyncio.sleep(4)
-                await message.delete()
+                await ctx.send("Successfully purged {} messages".format(amount), hidden=True)
             else:
                 if amount == None:
                     await ctx.send("Mention the amount of messages you want to purge")
                 else:
                     await ctx.channel.purge(limit=amount+1)
+                    await ctx.send("Successfully purged {} messages".format(amount), hidden=True)
 
 class Atlas:
     
@@ -698,7 +735,6 @@ class Atlas:
         data = cursor.execute("""SELECT * FROM Atlas""").fetchall()
         for tup in data:
             places.append(tup[-1])
-        print(places)
         return places
 
     def __init__(self, member:discord.Member):
@@ -713,11 +749,10 @@ class Atlas:
     
     def Register_Server(ctx):
         Atlas.Used_places.update({ctx.guild.id : []})
-        Atlas.End.update({ctx.guild.id : False})
 
     async def increase_point(self, msg):
         self.points += 1
-        await msg.reply("Correct Answer!!✅")
+        await msg.reply(f"Correct Answer!!✅\nTotal Points: {self.points}")
         if self.points == 10:
             await self.won(msg)
 
@@ -789,7 +824,7 @@ class Atlas:
             response = await bot.wait_for('message', check=check, timeout=10)
             return [Player, response]
         except asyncio.TimeoutError:
-            return None
+            return [Player, None]
 
     async def ask(self, ctx, last_letter:str):
         await ctx.send(f"{self.mention} Give a name of a country or a capital by the starting letter of ***{last_letter.upper()}***")
@@ -834,6 +869,7 @@ async def atlas(ctx):
             if ctx.guild.id in Atlas.Players.keys():
                 await ctx.send("Can't initiate another ***Atlas game*** as a game is already in play in this server.")
             else:
+                Atlas.End.update({ctx.guild.id : False})
                 embed = discord.Embed(title=f'**Atlas**', description='react on this message with the check to participate ✅')
                 embed.set_footer(icon_url='https://cdn.discordapp.com/emojis/892751786719469598.gif?size=56', text='Good luck')
                 message = await ctx.send(embed=embed)
@@ -851,183 +887,78 @@ async def atlas(ctx):
                         for user in users:
                             if user.id != winsy_id:
                                 Atlas.Players[ctx.guild.id].append(Atlas(user))
-                print('Players before jumbled:', Atlas.Players)
-                Atlas.jumble(ctx)
-                print('Players after jumbled:', Atlas.Players)
+                if Atlas.End[ctx.guild.id] == False:
+                    Atlas.jumble(ctx)
 
-                if Atlas.Players[ctx.guild.id] == []:
-                    Atlas.Players.pop(ctx.guild.id)
-                    await ctx.send('No players reacted, the game is terminated.')
-                    
-                elif len(Atlas.Players[ctx.guild.id]) < 2:
-                    Atlas.Players.pop(ctx.guild.id)
-                    await ctx.send('Atleast 2 players are needed to start the game.')
+                    if Atlas.Players[ctx.guild.id] == []:
+                        Atlas.Players.pop(ctx.guild.id)
+                        await ctx.send('No players reacted, the game is terminated.')
+                        
+                    elif len(Atlas.Players[ctx.guild.id]) < 2:
+                        Atlas.Players.pop(ctx.guild.id)
+                        await ctx.send('Atleast 2 players are needed to start the game.')
 
-                else:
-                    Atlas.Register_Server(ctx)
-                    await ctx.send('Game starts now!!')
-
-                    Last_letter = None
-                    first_response = await Atlas.start(ctx)
-                    if first_response != None:
-                        if Atlas.valid_place(first_response[1].content):
-                            Atlas.used(ctx, first_response[1].content)
-                            await first_response[0].correct_response(first_response[1])
-                            Last_letter = first_response[1].content[-1]
-                        else:
-                            await first_response[0].wrong_response(first_response[1])
                     else:
-                        await first_response[0].timeout(ctx)
-
-                    Pointer = 1
-                    if Last_letter == None:
-                        Last_letter = random.choice("A B C D E F G H I J K L M N O P Q R S T U V W X Y Z".split(" "))
-
-                    while True:
                         if Atlas.End[ctx.guild.id] == False:
-                            if Pointer == len(Atlas.Players[ctx.guild.id]):
-                                Pointer = 0
+                            Atlas.Register_Server(ctx)
+                            await ctx.send('Game starts now!!')
                             
-                            Current_player: Atlas = Atlas.Players[ctx.guild.id][Pointer]
-                            Response = await Current_player.ask(ctx, last_letter=Last_letter)
-                            if Response != None:
-                                if Response.content.lower() in Atlas.Used_places[ctx.guild.id]:
-                                    await Current_player.already_used(Response, Response.content)
-                                elif Atlas.valid_place(Response.content):
-                                    Atlas.used(ctx, Response.content)
-                                    Last_letter = Response.content[-1]
-                                    await Current_player.correct_response(Response)
+                            Last_letter = None
+                            first_response = await Atlas.start(ctx)
+                            if Atlas.End[ctx.guild.id] == False:
+                                if first_response[1] is not None:
+                                    if Atlas.valid_place(first_response[1].content):
+                                        Atlas.used(ctx, first_response[1].content)
+                                        await first_response[0].correct_response(first_response[1])
+                                        Last_letter = first_response[1].content[-1]
+                                    else:
+                                        await first_response[0].wrong_response(first_response[1])
                                 else:
-                                    await Current_player.wrong_response(Response)
-                            else:
-                                await Current_player.timeout(ctx)
+                                    await first_response[0].timeout(ctx)
 
-                            Pointer += 1
-                        else:
-                            Atlas.Clear_game(ctx)
-                            break
+                                Pointer = 1
+                                if Last_letter == None:
+                                    Last_letter = random.choice("A B C D E F G H I J K L M N O P Q R S T U V W X Y Z".split(" "))
+
+                                while True:
+                                    if Atlas.End[ctx.guild.id] == False:
+                                        if Pointer == len(Atlas.Players[ctx.guild.id]):
+                                            Pointer = 0
+                                        
+                                        Current_player: Atlas = Atlas.Players[ctx.guild.id][Pointer]
+                                        Response = await Current_player.ask(ctx, last_letter=Last_letter)
+                                        if Response != None:
+                                            if Response.content.lower() in Atlas.Used_places[ctx.guild.id]:
+                                                await Current_player.already_used(Response, Response.content)
+                                            elif Atlas.valid_place(Response.content):
+                                                Atlas.used(ctx, Response.content)
+                                                Last_letter = Response.content[-1]
+                                                await Current_player.correct_response(Response)
+                                            else:
+                                                await Current_player.wrong_response(Response)
+                                        else:
+                                            await Current_player.timeout(ctx)
+
+                                        Pointer += 1
+                                    else:
+                                        try:
+                                            Atlas.Clear_game(ctx)
+                                        except:
+                                            pass
+                                        break
 
 @bot.command()
 async def stop_atlas(ctx):
     if ctx.guild.id in Atlas.Players.keys():
-        print("hai")
         player_ids = []
         for player in Atlas.Players[ctx.guild.id]:
             player_ids.append(player.id)
         if ctx.author.id in player_ids:
             Atlas.End[ctx.guild.id] = True
+            Atlas.Clear_game(ctx)
             await ctx.reply("Game has been stopped {}".format(get_emoji(random.choice([775398330150813736, 892776197887524935]))))
     else:
         await ctx.reply("There's no game running in this server currently")
-
-@bot.command()
-async def amogus(ctx):
-    def crewlist(list):
-        ctr = 1
-        dialouge = ""
-        for member in list:
-            if ctr == 1:
-                dialouge += f"{ctr}. {member.name}"
-
-            else:
-                dialouge += f"\n{ctr}. {member.name}"
-            ctr += 1
-
-        embed = discord.Embed(title='**Crewmates**', description='*There is one imposter among us...*', color=color())
-        embed.add_field(name="List", value=dialouge, inline=False)
-        embed.set_footer(icon_url='https://cdn.discordapp.com/emojis/892750347599233034.gif?size=128', text="Get ready for the fun")
-
-        return embed
-
-    if isinstance(ctx.channel, discord.channel.DMChannel):
-        await ctx.send(embed=Embeds.non_dm_embed())
-
-    else:
-        guild_id = ctx.guild.id
-        if guild_id not in ignored.guilds:
-            ignored.addguild(guild_id)
-        if ctx.author.id in ignored.guilds[guild_id]:
-            return
-        else:
-            embed = discord.Embed(title=f'Game', description='React on this message with the check to participate ✅')
-            embed.set_footer(icon_url='https://cdn.discordapp.com/emojis/892751786719469598.gif?size=56', text='Amogus')
-            message = await ctx.send(embed=embed)
-            await message.add_reaction('✅')
-            participants = []
-            def check(reaction, user):
-                if user.id != winsy_id:
-                    if str(reaction.emoji) == '✅' and reaction.message == message:
-                        participants.append(user)
-                        return False
-            try:
-                reaction = await bot.wait_for('reaction_add', timeout=5, check=check)
-
-            except asyncio.TimeoutError:
-                await ctx.send('Registration closed.')
-                print(participants)
-                embed = crewlist(participants)
-                crewlist = await ctx.send(embed=embed)
-                msg = await ctx.send(content=f"The imposter is being decided..... {get_emoji(890871150941450271)}")
-                imposter = random.choice(participants)
-                await imposter.send(f"You are the imposter {get_emoji(892839909302358056)} Good luck killing those dumb fucks {get_emoji(892772725343535104)}")
-                await msg.edit(content='Imposter has been decided, find the imposter once your turn comes over.')
-                await ctx.send(f"Let's start shall we? {get_emoji(881253669083955221)}")
-                await asyncio.sleep(2)
-                while True:
-                    ctr = 0
-                    mate  = participants[ctr]
-                    await ctx.send(f"{mate.mention} Whome do you sus? provide a reason for the others to think over it, a voting will start under 10 seconds of your relpy")
-                    def check2(m):
-                        return m.author == mate and m.channel == ctx.channel
-                    
-                    try:
-                        message = await bot.wait_for('message', timeout=15, check=check2)
-                        query = await ctx.send(f"Does everyone agree with {mate.mention}'s accuse")
-
-                    except asyncio.TimeoutError:
-                        await ctx.send(f"{mate.mention} you didn't reply within time....hmmm isn't that sus mates? {get_emoji(892842878848602114)}")
-                        query = await ctx.send(f"Do you guys want to vote {mate.mention}?")
-                        await query.add_reaction('✅')
-                        global reactions
-                        reactions = 0
-                        def reaction_check(reaction, user):
-                            global reactions
-                            if reaction.emoji == '✅' and reaction.message == query:
-                                reactions += 1
-                                return False
-
-                        try:
-                            reactions = await bot.wait_for('reaction_add', timeout=5, check=reaction_check)
-
-                        except asyncio.TimeoutError:
-                            await query.delete()
-                            print(f"reactions = {reactions}")
-                            if reactions > len(participants) // 2:
-                                await ctx.send("Whoops, seems like majority chose to kick you, *Happy journey!*")
-                                await ctx.send("*Kicked*")
-                                mute_role = discord.utils.get(my_guild.roles, name='mute')
-                                mate.add_role(mute_role)
-                            
-                            else:
-                                await ctx.send(f"{mate.mention} Lucky bro you're safe {get_emoji(881253669083955221)}")
-                    
-                    await query.add_reaction('✅')
-                    global reactions1
-                    reactions1 = 0
-                    def reactions_check(reaction, user):
-                        global reactions1
-                        if user.id != winsy_id:
-                            if reaction.message == query:
-                                reactions1 += 1
-                                return False
-                        
-                    try:
-                        pass
-
-                    except asyncio.TimeoutError:
-                        pass
-
-                    ctr += 1
 
 @bot.command()
 async def laugh(ctx, at, member:discord.Member=None):
@@ -1088,7 +1019,7 @@ async def brofist(ctx):
         if ctx.author.id in ignored.guilds[guild_id]:
             return
         else:
-            file = discord.File(f"Winsy/bro_fist/e4579003-ac2f-478d-874e-da4ad0f25cf0.jpg")
+            file = discord.File(f"Winsy_/bro_fist/e4579003-ac2f-478d-874e-da4ad0f25cf0.jpg")
             embed = discord.Embed(description=f"**{random.choice(bro_fist_replies)}** {ctx.author.mention}", colour=color())
             embed.set_image(url=f"attachment://e4579003-ac2f-478d-874e-da4ad0f25cf0.jpg")
             await ctx.send(file=file, embed=embed)
@@ -1157,7 +1088,7 @@ async def roast(ctx, member:discord.Member=None):
                         await ctx.send(f"{kiralaugh}")
                         return
 
-                    await ctx.message.reply(f"{dialouge}{emoji}")
+                    await ctx.reply(f"{dialouge}{emoji}")
 
                 else:
                     dict = await fetch_roasts(member.id)
@@ -1168,7 +1099,7 @@ async def roast(ctx, member:discord.Member=None):
                         await ctx.send(f"{member.mention} {roast_choice}")
 
                     else:
-                        await ctx.send(roast_choice)
+                        await ctx.reply(roast_choice)
 
 @bot.command()
 async def why(ctx, insult:str=None, member:discord.Member=None):
@@ -1190,6 +1121,72 @@ async def why(ctx, insult:str=None, member:discord.Member=None):
             
             else:
                 return
+
+async def fetch_king_data():
+    cursor = conn.cursor()
+    data = cursor.execute("""SELECT * FROM king_cmd""").fetchall()
+    one = random.choice(data)
+    dict = {'image' : one[0], 'button' : one[1], 'response' : one[2], 'button_type' : one[3]}
+    return dict
+
+@slash.slash(
+    name='you_dropped_this',
+    description='👑',
+    guild_ids=all_guilds,
+    options=[
+        create_option(
+            name='user',
+            description="Who's the king? 👑",
+            required=True,
+            option_type=6
+        )
+    ]
+)
+async def king(ctx: SlashContext, user: discord.Member):
+    opt = await fetch_king_data()
+    embed = discord.Embed(description=user.mention)
+    embed.set_image(url=opt['image'])
+    if opt['button_type'] == 'custom':
+        opt['button'] = get_emoji(opt['button'])
+        buttons = [
+            create_button(style=ButtonStyle.grey, label='TAKE IT👉👉', disabled=True),
+            create_button(style=ButtonStyle.blue, emoji=opt['button']),
+            create_button(style=ButtonStyle.grey, label='👈👈TAKE IT', disabled=True)
+        ]
+    else:
+        buttons = [
+            create_button(style=ButtonStyle.grey, label='TAKE IT👉👉', disabled=True),
+            create_button(style=ButtonStyle.blue, label=opt['button']),
+            create_button(style=ButtonStyle.grey, label='👈👈TAKE IT', disabled=True)
+        ]
+    action_row = create_actionrow(*buttons)
+    lol = await ctx.send(embed=embed, components=[action_row])
+    def check(component_ctx: ComponentContext):
+        return component_ctx.author_id == user.id
+    try:
+        button_ctx = await wait_for_component(bot, components=action_row, timeout=20, check=check)
+        if button_ctx.component['label'] == opt['button']:
+            await button_ctx.edit_origin(content=opt['response'], components=[], embed=None)
+    except asyncio.TimeoutError:
+        await lol.edit(content=f"{user.mention} Maybe you didn't deserve it {get_emoji(921055619199422485)}", components=[], embed=None)
+
+@bot.event
+async def on_command_error(ctx, error):
+    channel = bot.get_channel(error_channel_id)
+    embed = discord.Embed(title='Error raised in '+str(ctx.command), description=error, color=color())
+    await channel.send(embed=embed)
+
+@bot.command()
+async def servers(ctx):
+    cursor = conn.cursor()
+    data = cursor.execute("""SELECT * FROM My_Guilds""").fetchall()
+    servers = ""
+    ctr = 1
+    for server in data:
+        servers += f"{ctr}. {server[0]}\n"
+        ctr += 1
+    embed = discord.Embed(title='All the registered servers are', description=servers, color=color())
+    await ctx.reply(embed=embed)
 
 all_cogs = os.listdir('./Winsy_/cogs')
 for file in all_cogs:
