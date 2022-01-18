@@ -25,7 +25,7 @@ bot = commands.Bot(command_prefix=commands.when_mentioned_or("T ", "t "), case_s
 slash = SlashCommand(bot, sync_commands=True)
 bot.remove_command('help')
 
-conn = sqlite3.connect("./Winsy_/Winsy_main.db")
+conn = sqlite3.connect("./Winsy_/Winsy.db")
 
 my_id = 762372102204030986
 winsy_id = 873504810278739988
@@ -156,7 +156,6 @@ async def help(ctx, *, category = None):
         embed.add_field(name="`spam <user mention> <message(if any)>`", value="*Spams the message along with the mentioned user*", inline=False)
         embed.add_field(name="`poop at <user mention>`", value="*Poops in the dm of the mentioned user*", inline=True)
         await ctx.send(embed=embed)
-        await ctx.message.delete()
 
     elif category == '2':
         embed = discord.Embed(title="**Interactive commands**", description="All the commands to interact with the bot.", color=color())
@@ -165,14 +164,12 @@ async def help(ctx, *, category = None):
         embed.add_field(name="`brofist`", value="*Winsy wishes **brofist***", inline=False)
         embed.add_field(name="`why insult <user>`", value="*Winsy explains the reason to laugh at the <user>*", inline=False)
         await ctx.send(embed=embed)
-        await ctx.message.delete()
 
     elif category == '3':
         embed = discord.Embed(title="**Search commands**", description="All the search commands", color=color())
         embed.add_field(name="`insta <insta post/reel link>`", value="Sends the media link for the user to download", inline=False)
         embed.add_field(name='`yt <vid link>`', value="Sends the media link for the user to download", inline=False)
         await ctx.send(embed=embed)
-        await ctx.message.delete()
 
     elif category == '4':
         embed = discord.Embed(title="**Utility commands**", description="All the utility commands", color=color())
@@ -186,7 +183,15 @@ async def help(ctx, *, category = None):
         embed.add_field(name="`mute <user>`", value="User will be muted (can only be used by members with `kick members` permission)", inline=False)
         embed.add_field(name="`unmute <user>`", value="User will be unmuted if already muted (can only be used by members with `kick members` permission)", inline=False)
         await ctx.send(embed=embed)
-        await ctx.message.delete()
+
+    elif category == '5':
+        embed = discord.Embed(title="**Administrator commands**", description="All the commands used for bot's administrative purposes", color=color())
+        embed.add_field(name='`checkytapi`', value='Check out the API used to initiate the YT command', inline=False)
+        embed.add_field(name='`updateytapi`', value='Update/Change the YT API', inline=False)
+        embed.add_field(name='`updateytapiback`', value='Update/Change the YT API to what it was the last time', inline=False)
+        await ctx.send(embed=embed)
+        
+    await ctx.message.delete()
 
 @commands.cooldown(1, 60, commands.BucketType.member)
 @bot.command()
@@ -417,6 +422,10 @@ async def ping(ctx):
         else:
             await ctx.send(f"Pong! {round(bot.latency*1000, 1)}ms")
 
+def insta_embed(dialouge=None):
+    embed = discord.Embed(description=f"```py\n{dialouge}```", color=0xe30eae).set_footer(text="Enjoy")
+    return embed
+
 @bot.command()
 async def insta(ctx, url:str=None):
     if isinstance(ctx.channel, discord.channel.DMChannel):
@@ -450,20 +459,26 @@ async def insta(ctx, url:str=None):
                         return
                     try:
                         post_url = response['video']
-                        embed = await embed_maker(link=await shorten_url(post_url[0])+'video')
+                        embed = insta_embed(dialouge="Here's the Download button for the video you searched for✅")
+                        buttons = [
+                            create_button(label='Download', style=ButtonStyle.URL, url=await shorten_url(post_url[0]))
+                        ]
+                        action_row = create_actionrow(*buttons)
                         await message.delete()
-                        await ctx.send(embed=embed) 
+                        await ctx.send(embed=embed, components=[action_row])
                     except:
                         try:
                             post_url = response['image']
-                            embed = await embed_maker(link=await shorten_url(post_url[0])+'image')
+                            embed = insta_embed(dialouge="Here's the Download button for the image you searched for✅")
                             await message.delete()
-                            await ctx.send(embed=embed)
+                            await ctx.send(embed=embed, components=[action_row])
                         except:
                             await message.edit(content=f"Couldn't fetch the requsted video, please invoke the command again and try {get_emoji(928317890208333955)}")
 
 async def get_channel_info(url):
     results = YoutubeSearch(search_terms=url, max_results=1).to_dict()
+    if len(results) == 0:
+        return None
     return results[0]
 
 def yt_embed(channel_info, dialouge=None):
@@ -473,6 +488,88 @@ def yt_embed(channel_info, dialouge=None):
                         color=discord.Color.red()
              ).set_thumbnail(url=f"https://img.youtube.com/vi/{vid_id}/hqdefault.jpg").set_footer(text="By {}".format(channel_info['channel']))
     return embed
+
+async def override_api(api=None, last=False):
+    cursor = conn.cursor()
+    current_api = await fetch_api(check='main')
+    if last:
+        try:
+            last_api = await fetch_api(check='last')
+            cursor.execute("""UPDATE yt_fetch_api SET API = ? WHERE Check = ?"""[last_api, 'main'])
+            cursor.execute("""UPDATE yt_fetch_api SET API = ? WHERE Check = ?"""[current_api, 'last'])
+            conn.commit()
+            cursor.close()
+            return 'API updated successfully✅'
+        except:
+            cursor.close()
+            return 'There was an error updating the API into the database, please try again or check it out'
+    else:
+        try:
+            cursor.execute("""UPDATE yt_fetch_api SET API = ? WHERE Check = ?""", [current_api, 'last'])
+            cursor.execute("""UPDATE yt_fetch_api SET API = ? WHERE Check = ?""", [api, 'main'])
+            conn.commit()
+            cursor.close()
+            return 'API updated successfully✅'
+        except:
+            cursor.close()
+            return 'There was an error updating the API into the database, please try again or check it out'
+
+async def fetch_api(check):
+    cursor = conn.cursor()
+    data = cursor.execute("""SELECT * FROM yt_fetch_api WHERE Check = ?""", [check]).fetchone()
+    cursor.close()
+    return data[0]
+
+@bot.command()
+async def updateytapiback(ctx):
+    if ctx.author.id != my_id:
+        await ctx.send("You can't update the api info in the database ❌")
+        return
+    await ctx.send("Do you confirm updating the api to the last one?")
+    def check(m):
+        return m.author.id == my_id and m.channel.id == ctx.channel.id and m.content.lower() in ['yes', 'y', 'no', 'n']
+    
+    try:
+        response = await bot.wait_for('message', check=check, timeout=15)
+        if response.content.lower() in ['yes', 'y']:
+            process_response = await override_api(last=True)
+            await ctx.send(process_response)
+        else:
+            await ctx.send(embed=Embeds.command_cancelled())
+    except asyncio.TimeoutError:
+        await ctx.send(embed=Embeds.command_cancelled())
+
+@bot.command()
+async def updateytapi(ctx, api: str=None):
+    if ctx.author.id != my_id:
+        await ctx.send("You can't update the api info in the database ❌")
+    if api == None:
+        await ctx.send("Api where👀??")
+        return
+    await ctx.send("Do you confirm updating the api to `{}` ?".format(api))
+    def check(m):
+        return m.author.id == my_id and m.channel.id == ctx.channel.id and m.content.lower() in ['yes', 'y', 'no', 'n']
+
+    try:
+        response = await bot.wait_for('message', check=check, timeout=15)
+        if response.content.lower() in ['yes', 'y']:
+            process_response = await override_api(api=api)
+            await ctx.send(process_response)
+        else:
+            await ctx.send(embed=Embeds.command_cancelled())
+    except asyncio.TimeoutError:
+        await ctx.send(embed=Embeds.command_cancelled())
+
+@bot.command()
+async def checkytapi(ctx, type=None):
+    if ctx.author.id != my_id:
+        await ctx.send("You don't have the permissions to see the sensitive data ❌")
+    else:
+        if type == None:
+            await ctx.send("API type where?👀")
+        else:
+            api = await fetch_api(check=type)
+            await ctx.author.send("Here's the api which is currently being used for the yt command:\n{}".format(api))
 
 @bot.command()
 async def yt(ctx, url:str=None):
@@ -567,7 +664,7 @@ async def yt(ctx, url:str=None):
                                 'timeExpire' : response['timeExpires']
                             }
                             try:
-                                api = "https://dsfdsf2.kahagdddae.xyz/api/json/convert"
+                                api = await fetch_api()
                                 response = requests.post(api, data=data).json()
                                 buttons = [
                                     create_button(label='Download', style=ButtonStyle.URL, url=await shorten_url(response['result']))
@@ -591,8 +688,9 @@ async def yt(ctx, url:str=None):
                             ]
                             action_row = create_actionrow(*buttons)
                             await format_req_ctx.edit_origin(content="", components=[action_row], embed=embed)
-                    except:
+                    except Exception as e:
                         await message.edit(content="Kuch error aya hai, mere owner ko gaali de", embed=None, components=[])
+                        print(e)
 
 @commands.cooldown(1, 30, commands.BucketType.user)
 @bot.command()
@@ -1170,11 +1268,11 @@ async def king(ctx: SlashContext, user: discord.Member):
     except asyncio.TimeoutError:
         await lol.edit(content=f"{user.mention} Maybe you didn't deserve it {get_emoji(921055619199422485)}", components=[], embed=None)
 
-@bot.event
-async def on_command_error(ctx, error):
-    channel = bot.get_channel(error_channel_id)
-    embed = discord.Embed(title='Error raised in '+str(ctx.command), description=error, color=color())
-    await channel.send(embed=embed)
+# @bot.event
+# async def on_command_error(ctx, error):
+#     channel = bot.get_channel(error_channel_id)
+#     embed = discord.Embed(title='Error raised in '+str(ctx.command), description=error, color=color())
+#     await channel.send(embed=embed)
 
 @bot.command()
 async def servers(ctx):

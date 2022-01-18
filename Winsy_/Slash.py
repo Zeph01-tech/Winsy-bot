@@ -10,7 +10,7 @@ from Winsy import bot, slash, my_id
 from Winsy import all_guilds
 import Winsy
 
-conn = sqlite3.connect('./Winsy_/Winsy_main.db')
+conn = sqlite3.connect('./Winsy_/Winsy.db')
 my_server_id = 762380604058632222
 
 @slash.slash(
@@ -205,7 +205,7 @@ async def _test(ctx: SlashContext):
     except asyncio.TimeoutError:
         await ctx.edit(content='You failed to respond within time', components=[])
 
-with open('./TOKENS/bot_token.txt', 'r') as file:
+with open('./TOKENS/token.txt', 'r') as file:
     TOKEN = file.read()
 
 bot.run(TOKEN)
