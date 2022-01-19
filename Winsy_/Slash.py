@@ -179,6 +179,22 @@ async def _mute(ctx: SlashContext, user: discord.Member):
 async def _unmute(ctx: SlashContext, user: discord.Member):
     await Winsy.unmute(ctx, member=user)
 
+@slash.slash(
+    name='youtube_video_download',
+    description='Choose the file format and quality of a YT video which you desire to download',
+    guild_ids=all_guilds,
+    options=[
+        create_option(
+            name='url', 
+            description='URL of the video',
+            required=True,
+            option_type=3
+        )
+    ]
+)
+async def _yt(ctx: SlashContext, url: str):
+    await Winsy.yt(ctx, url=url)
+
 with open('./TOKENS/token.txt', 'r') as file:
     TOKEN = file.read()
 

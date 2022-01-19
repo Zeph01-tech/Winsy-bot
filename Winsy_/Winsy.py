@@ -482,18 +482,67 @@ def yt_embed(channel_info, dialouge=None):
              ).set_thumbnail(url=f"https://img.youtube.com/vi/{vid_id}/hqdefault.jpg").set_footer(text="By {}".format(channel_info['channel']))
     return embed
 
+def vid_dict_maker(vids_dict):
+    new_dict = {}
+    index = 1
+    for key in vids_dict:
+        in_dict = vids_dict[key]
+        new_dict.update({index :{'quality': in_dict['q'], 'size' : in_dict['size'], 'ftype' : in_dict['f']}})
+        index += 1
+
+    return new_dict
+
+async def retry(info):
+    channel = bot.get_channel(error_channel_id)
+    embed = discord.Embed(title="Alert from YT command", description='The command invoked `retry` block to process a video', color=color())
+    await channel.send(embed=embed)
+    for i in range(1, 4):
+        response = requests.post(url='https://yt1s.io/api/ajaxSearch', data={'q' : info['url'], 'vt' : 'home'}).json()
+        f_name = response['fn']
+        data = {
+                'v_id' : response['vid'], 
+                'ftype' : info['ftype'], 
+                'fquality' : info['fquality'], 
+                'token' : response['token'],
+                'timeExpire' : response['timeExpires'],
+                'client' : 'yt1s.io'
+            }
+        response = requests.post(url='https://backend.svcenter.xyz/api/convert-by-45fc4be8916916ba3b8d61dd6e0d6994', headers=headers, data=data).json()
+        server_url = response['c_server']
+        data.pop('client')
+        data.update({'fname' : f_name})
+        final_response = requests.post(url=server_url+'/api/json/convert', data=data).json()
+        try:
+            buttons = [
+                create_button(label='Download', style=ButtonStyle.URL, url=await shorten_url(final_response['result']))
+            ]
+            action_row = create_actionrow(*buttons)
+            embed = yt_embed(channel_info=info['channel-info'], dialouge="Here's the Download button for the video you searched for✅")
+            await info['message'].edit(embed=embed, components=[action_row])
+            embed.description = "The `retry` block responded with a valid **URl**✅ in the {}'s try".format(i)
+            await channel.send(embed=embed)
+            return 'Lmao'
+        except:
+            pass
+    embed.description = "The `retry` block couldn't respond with a valid URL :("
+    await channel.send(embed=embed)
+    return None
+
+@slash.slash(
+    name='youtube',
+    description='Choose the file format and quality of a YT video which you desire to download',
+    guild_ids=all_guilds,
+    options=[
+        create_option(
+            name='url', 
+            description='URL of the video',
+            required=True,
+            option_type=3
+        )
+    ]
+)
 @bot.command()
 async def yt(ctx, url:str=None):
-
-    def vid_dict_maker(vids_dict):
-        new_dict = {}
-        index = 1
-        for key in vids_dict:
-            in_dict = vids_dict[key]
-            new_dict.update({index :{'quality': in_dict['q'], 'size' : in_dict['size'], 'ftype' : in_dict['f']}})
-            index += 1
-
-        return new_dict
 
     if isinstance(ctx.channel, discord.channel.DMChannel):
         await ctx.send(embed=Embeds.non_dm_embed())
@@ -574,6 +623,7 @@ async def yt(ctx, url:str=None):
                                 'timeExpire' : response['timeExpires'],
                                 'client' : 'yt1s.io'
                             }
+                            global headers
                             headers = {'x-requested-key' : 'de0cfuirtgf67a'}
                             f_name = response['fn']
                             try:
@@ -590,11 +640,13 @@ async def yt(ctx, url:str=None):
                                 embed = yt_embed(channel_info=channel_info, dialouge="Here's the Download button for the video you searched for✅")
                                 await message.edit(embed=embed, components=[action_row])
                             except Exception as e: 
-                                embed = discord.Embed(description='An error occured while parsing the url, please use the command again and on the account of meeting the issue again, try the cmd with a lower quality.\nSorry for inconvinience.', color=0xe80e32)
-                                await message.edit(embed=embed)
-                                channel = bot.get_channel(error_channel_id)
-                                embed = discord.Embed(title='Error raised in '+str(ctx.command), description=e, color=color())
-                                await channel.send(embed=embed)
+                                result = await retry(info={'ctx' : ctx, 'url' : url, 'message' : message,'channel-info' : channel_info,'ftype' : videos_dict[index]['ftype'], 'fquality' : videos_dict[index]['quality']})
+                                if result == None:
+                                    embed = discord.Embed(description='An error occured while parsing the url, please use the command again and on the account of meeting the issue again, try the cmd with a lower quality.\nSorry for inconvinience.', color=0xe80e32)
+                                    await message.edit(embed=embed)
+                                    channel = bot.get_channel(error_channel_id)
+                                    embed = discord.Embed(title='Error raised in '+str(ctx.command), description=e, color=color())
+                                    await channel.send(embed=embed)
                         elif choice == 2:
                             YTDL_OPTIONS = {'format' : 'bestaudio', 'cookiefile' : './cookie.txt'}
                             with YoutubeDL(YTDL_OPTIONS) as ytdl:
