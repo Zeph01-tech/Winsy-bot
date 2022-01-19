@@ -183,14 +183,7 @@ async def help(ctx, *, category = None):
         embed.add_field(name="`mute <user>`", value="User will be muted (can only be used by members with `kick members` permission)", inline=False)
         embed.add_field(name="`unmute <user>`", value="User will be unmuted if already muted (can only be used by members with `kick members` permission)", inline=False)
         await ctx.send(embed=embed)
-
-    elif category == '5':
-        embed = discord.Embed(title="**Administrator commands**", description="All the commands used for bot's administrative purposes", color=color())
-        embed.add_field(name='`checkytapi`', value='Check out the API used to initiate the YT command', inline=False)
-        embed.add_field(name='`updateytapi`', value='Update/Change the YT API', inline=False)
-        embed.add_field(name='`updateytapiback`', value='Update/Change the YT API to what it was the last time', inline=False)
-        await ctx.send(embed=embed)
-        
+          
     await ctx.message.delete()
 
 @commands.cooldown(1, 60, commands.BucketType.member)
