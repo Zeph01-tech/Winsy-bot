@@ -179,32 +179,6 @@ async def _mute(ctx: SlashContext, user: discord.Member):
 async def _unmute(ctx: SlashContext, user: discord.Member):
     await Winsy.unmute(ctx, member=user)
 
-@slash.slash(
-    name='test',
-    description='components',
-    guild_ids=[my_server_id]
-)
-async def _test(ctx: SlashContext):
-    buttons=[
-        create_button(style=ButtonStyle.blurple, label='You are gae', custom_id="gae"),
-        create_button(style=ButtonStyle.red, label='NO!', custom_id='no'),
-        create_button(style=ButtonStyle.grey, label='YES!', custom_id='yes'),
-        create_button(style=ButtonStyle.green, label='LMAO!', custom_id='lmao')
-    ]
-    action_row = create_actionrow(*buttons)
-    msg = await ctx.send("Hehe", components=[action_row])
-    def check(context: ComponentContext):
-        return context.author_id == my_id
-    try:
-        button_ctx: ComponentContext = await wait_for_component(bot, components=action_row, timeout=10)
-        await button_ctx.edit_origin(content=f'You pressed!! {button_ctx.component["label"]}', components=[])
-        print('Component :', button_ctx.component)
-        print('Component Type:', button_ctx.component_type)
-        print('Custom id:', button_ctx.custom_id)
-        print('Component id:', button_ctx.component_id)
-    except asyncio.TimeoutError:
-        await ctx.edit(content='You failed to respond within time', components=[])
-
 with open('./TOKENS/token.txt', 'r') as file:
     TOKEN = file.read()
 

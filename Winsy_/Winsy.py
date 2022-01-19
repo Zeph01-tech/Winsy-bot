@@ -484,92 +484,10 @@ async def get_channel_info(url):
 def yt_embed(channel_info, dialouge=None):
     embed = discord.Embed(
                         title=title, 
-                        description=f'```py\nName: {title}\n\nViews: {channel_info["views"]}\n\n\n{dialouge}```',
+                        description=f'```py\nName: {title}\n\nViews: {channel_info["views"][0:-6]}\n\n\n{dialouge}```',
                         color=discord.Color.red()
              ).set_thumbnail(url=f"https://img.youtube.com/vi/{vid_id}/hqdefault.jpg").set_footer(text="By {}".format(channel_info['channel']))
     return embed
-
-async def override_api(api=None, last=False):
-    cursor = conn.cursor()
-    current_api = await fetch_api(check='main')
-    if last:
-        try:
-            last_api = await fetch_api(check='last')
-            cursor.execute("""UPDATE yt_fetch_api SET API = ? WHERE Check = ?""", [last_api, 'main'])
-            cursor.execute("""UPDATE yt_fetch_api SET API = ? WHERE Check = ?""", [current_api, 'last'])
-            conn.commit()
-            cursor.close()
-            return 'API updated successfully✅'
-        except:
-            cursor.close()
-            return 'There was an error updating the API into the database, please try again or check it out'
-    else:
-        try:
-            cursor.execute("""UPDATE yt_fetch_api SET API = ? WHERE Check = ?""", [current_api, 'last'])
-            cursor.execute("""UPDATE yt_fetch_api SET API = ? WHERE Check = ?""", [api, 'main'])
-            conn.commit()
-            cursor.close()
-            return 'API updated successfully✅'
-        except:
-            cursor.close()
-            return 'There was an error updating the API into the database, please try again or check it out'
-
-async def fetch_api(check):
-    cursor = conn.cursor()
-    data = cursor.execute("""SELECT * FROM yt_fetch_api WHERE Check = ?""", [check]).fetchone()
-    cursor.close()
-    return data[0]
-
-@bot.command()
-async def updateytapiback(ctx):
-    if ctx.author.id != my_id:
-        await ctx.send("You can't update the api info in the database ❌")
-        return
-    await ctx.send("Do you confirm updating the api to the last one?")
-    def check(m):
-        return m.author.id == my_id and m.channel.id == ctx.channel.id and m.content.lower() in ['yes', 'y', 'no', 'n']
-    
-    try:
-        response = await bot.wait_for('message', check=check, timeout=15)
-        if response.content.lower() in ['yes', 'y']:
-            process_response = await override_api(last=True)
-            await ctx.send(process_response)
-        else:
-            await ctx.send(embed=Embeds.command_cancelled())
-    except asyncio.TimeoutError:
-        await ctx.send(embed=Embeds.command_cancelled())
-
-@bot.command()
-async def updateytapi(ctx, api: str=None):
-    if ctx.author.id != my_id:
-        await ctx.send("You can't update the api info in the database ❌")
-    if api == None:
-        await ctx.send("Api where👀??")
-        return
-    await ctx.send("Do you confirm updating the api to `{}` ?".format(api))
-    def check(m):
-        return m.author.id == my_id and m.channel.id == ctx.channel.id and m.content.lower() in ['yes', 'y', 'no', 'n']
-
-    try:
-        response = await bot.wait_for('message', check=check, timeout=15)
-        if response.content.lower() in ['yes', 'y']:
-            process_response = await override_api(api=api)
-            await ctx.send(process_response)
-        else:
-            await ctx.send(embed=Embeds.command_cancelled())
-    except asyncio.TimeoutError:
-        await ctx.send(embed=Embeds.command_cancelled())
-
-@bot.command()
-async def checkytapi(ctx, type=None):
-    if ctx.author.id != my_id:
-        await ctx.send("You don't have the permissions to see the sensitive data ❌")
-    else:
-        if type == None:
-            await ctx.send("API type where?👀")
-        else:
-            api = await fetch_api(check=type)
-            await ctx.author.send("Here's the api which is currently being used for the yt command:\n{}".format(api))
 
 @bot.command()
 async def yt(ctx, url:str=None):
@@ -604,93 +522,101 @@ async def yt(ctx, url:str=None):
                     return   
                 else:
                     await message.edit(content='Fetching all the available formats of the video....')
-                    # try:
-                    api = "https://yt1s.io/api/ajaxSearch"
-                    data = {'q' : url, 'vt' : 'home'}
-                    response = requests.post(api, data=data).json()
-                    global vid_id, title
-                    vid_id = response['vid']
-                    title = response['title']
-                    videos_dict = vid_dict_maker(response['links']['mp4'])
-                    channel_info = await get_channel_info(url=url)
-                    embed = yt_embed(channel_info=channel_info, dialouge="Pick a format for the file👇")
-                    list = create_select(
-                            options=[
-                                create_select_option(label='1. Mp4 (Video)', value='1'),
-                                create_select_option(label='2. Mp3 (Audio)', value='2')
-                            ],
-                            placeholder='Choose the format',
-                            max_values=1,
-                            min_values=1
-                        )
-                    action_row = create_actionrow(list)
-                    await message.edit(embed=embed, content="", components=[action_row])
-                    def check(action):
-                        return action.author_id == ctx.author.id
-
                     try:
-                        format_req_ctx: ComponentContext = await wait_for_component(client=bot, components=action_row,check=check, timeout=20)
-                        choice = int(format_req_ctx.values[0])
-                    except asyncio.TimeoutError:
-                        await message.delete()
-                        await ctx.send('You failed to respond in time')
-                        return
-
-                    if choice == 1:
+                        api = "https://yt1s.io/api/ajaxSearch"
+                        data = {'q' : url, 'vt' : 'home'}
+                        response = requests.post(api, data=data).json()
+                        global vid_id, title
+                        vid_id = response['vid']
+                        title = response['title']
+                        videos_dict = vid_dict_maker(response['links']['mp4'])
+                        channel_info = await get_channel_info(url=url)
+                        embed = yt_embed(channel_info=channel_info, dialouge="Pick a format for the file👇")
                         list = create_select(
-                            options=yt_quality_options(dict=videos_dict),
-                            placeholder='Available Qualities',
-                            min_values=1,
-                            max_values=1
-                        )
-                        embed = yt_embed(channel_info=channel_info, dialouge='Choose the quality of the video you desire to download')
+                                options=[
+                                    create_select_option(label='1. Mp4 (Video)', value='1'),
+                                    create_select_option(label='2. Mp3 (Audio)', value='2')
+                                ],
+                                placeholder='Choose the format',
+                                max_values=1,
+                                min_values=1
+                            )
                         action_row = create_actionrow(list)
-                        await format_req_ctx.edit_origin(components=[action_row], embed=embed)
+                        await message.edit(embed=embed, content="", components=[action_row])
+                        def check(action):
+                            return action.author_id == ctx.author.id
+
                         try:
-                            quality_req_ctx: ComponentContext = await wait_for_component(client=bot, components=action_row, check=check, timeout=20)
-                            embed = yt_embed(channel_info=channel_info, dialouge="Processing your yt video with the desired quality...")
-                            await quality_req_ctx.edit_origin(embed=embed, components=[])
+                            format_req_ctx: ComponentContext = await wait_for_component(client=bot, components=action_row,check=check, timeout=20)
+                            choice = int(format_req_ctx.values[0])
                         except asyncio.TimeoutError:
                             await message.delete()
                             await ctx.send('You failed to respond in time')
                             return
-                        index = int(quality_req_ctx.values[0])
-                        data = {
-                            'v_id' : vid_id, 
-                            'ftype' : videos_dict[index]['ftype'], 
-                            'fquality' : videos_dict[index]['quality'], 
-                            'fname' : response['fn'], 
-                            'token' : response['token'], 
-                            'timeExpire' : response['timeExpires']
-                        }
-                        # try:
-                        api = await fetch_api(check='main')
-                        response = requests.post(api, data=data).json()
-                        buttons = [
-                            create_button(label='Download', style=ButtonStyle.URL, url=await shorten_url(response['result']))
-                        ]
-                        action_row = create_actionrow(*buttons)
-                        embed = yt_embed(channel_info=channel_info, dialouge="Here's the Download button for the video you searched for✅")
-                        await message.edit(embed=embed, components=[action_row])
-                        # except Exception as e:
-                        embed = discord.Embed(description='An error occured while parsing the url, please use the command again and on the account of meeting the issue again, try the cmd with a lower quality.\nSorry for inconvinience.', color=0xe80e32)
-                        await message.edit(embed=embed)
-                        # channel = bot.get_channel(error_channel_id)
-                        # embed = discord.Embed(title='Error raised in '+str(ctx.command), description=e, color=color())
-                        # await channel.send(embed=embed)
-                    elif choice == 2:
-                        YTDL_OPTIONS = {'format' : 'bestaudio', 'cookiefile' : './cookie.txt'}
-                        with YoutubeDL(YTDL_OPTIONS) as ytdl:
-                            info = ytdl.extract_info(url, download=False)
-                        d_link = info['formats'][0]['url']
-                        buttons = [
-                            create_button(label='Download', style=ButtonStyle.URL, url=await shorten_url(url=d_link))
-                        ]
-                        action_row = create_actionrow(*buttons)
-                        await format_req_ctx.edit_origin(content="", components=[action_row], embed=embed)
-                    # except Exception as e:
-                    #     await message.edit(content="Kuch error aya hai, mere owner ko gaali de", embed=None, components=[])
-                    #     print(e)
+
+                        if choice == 1:
+                            list = create_select(
+                                options=yt_quality_options(dict=videos_dict),
+                                placeholder='Available Qualities',
+                                min_values=1,
+                                max_values=1
+                            )
+                            embed = yt_embed(channel_info=channel_info, dialouge='Choose the quality of the video you desire to download')
+                            action_row = create_actionrow(list)
+                            await format_req_ctx.edit_origin(components=[action_row], embed=embed)
+                            try:
+                                quality_req_ctx: ComponentContext = await wait_for_component(client=bot, components=action_row, check=check, timeout=20)
+                                embed = yt_embed(channel_info=channel_info, dialouge="Processing your yt video with the desired quality...")
+                                await quality_req_ctx.edit_origin(embed=embed, components=[])
+                            except asyncio.TimeoutError:
+                                await message.delete()
+                                await ctx.send('You failed to respond in time')
+                                return
+                            index = int(quality_req_ctx.values[0])
+                            data = {
+                                'v_id' : vid_id, 
+                                'ftype' : videos_dict[index]['ftype'], 
+                                'fquality' : videos_dict[index]['quality'], 
+                                'token' : response['token'],
+                                'timeExpire' : response['timeExpires'],
+                                'client' : 'yt1s.io'
+                            }
+                            headers = {'x-requested-key' : 'de0cfuirtgf67a'}
+                            f_name = response['fn']
+                            try:
+                                response = requests.post(url='https://backend.svcenter.xyz/api/convert-by-45fc4be8916916ba3b8d61dd6e0d6994', headers=headers, data=data).json()
+                                server_url = response['c_server']
+                                data.pop('client')
+                                data.update({'fname' : f_name})
+
+                                final_response = requests.post(url=server_url+'/api/json/convert', data=data).json()
+                                buttons = [
+                                    create_button(label='Download', style=ButtonStyle.URL, url=await shorten_url(final_response['result']))
+                                ]
+                                action_row = create_actionrow(*buttons)
+                                embed = yt_embed(channel_info=channel_info, dialouge="Here's the Download button for the video you searched for✅")
+                                await message.edit(embed=embed, components=[action_row])
+                            except Exception as e: 
+                                embed = discord.Embed(description='An error occured while parsing the url, please use the command again and on the account of meeting the issue again, try the cmd with a lower quality.\nSorry for inconvinience.', color=0xe80e32)
+                                await message.edit(embed=embed)
+                                channel = bot.get_channel(error_channel_id)
+                                embed = discord.Embed(title='Error raised in '+str(ctx.command), description=e, color=color())
+                                await channel.send(embed=embed)
+                        elif choice == 2:
+                            YTDL_OPTIONS = {'format' : 'bestaudio', 'cookiefile' : './cookie.txt'}
+                            with YoutubeDL(YTDL_OPTIONS) as ytdl:
+                                info = ytdl.extract_info(url, download=False)
+                            d_link = info['formats'][0]['url']
+                            buttons = [
+                                create_button(label='Download', style=ButtonStyle.URL, url=await shorten_url(url=d_link))
+                            ]
+                            action_row = create_actionrow(*buttons)
+                            await format_req_ctx.edit_origin(content="", components=[action_row], embed=embed)
+                    except Exception as e:
+                        await message.edit(content="Kuch error aya hai, mere owner ko gaali de", embed=None, components=[])
+                        channel = bot.get_channel(error_channel_id)
+                        embed = discord.Embed(title='Error raised in '+str(ctx.command), description=e, color=color())
+                        await channel.send(embed=embed)
 
 @commands.cooldown(1, 30, commands.BucketType.user)
 @bot.command()
