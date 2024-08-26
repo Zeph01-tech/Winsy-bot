@@ -1,0 +1,187 @@
+[
+  {
+    "package": "discord.py",
+    "version": "1.7.3",
+    "deps": [
+      {
+        "package": "chardet",
+        "version": "4.0.0"
+      },
+      {
+        "package": "typing-extensions",
+        "version": "4.0.1"
+      },
+      {
+        "package": "attrs",
+        "version": "21.4.0"
+      },
+      {
+        "package": "yarl",
+        "version": "1.7.2"
+      },
+      {
+        "package": "aiohttp",
+        "version": "3.7.4.post0"
+      },
+      {
+        "package": "async-timeout",
+        "version": "3.0.1"
+      },
+      {
+        "package": "idna",
+        "version": "3.3"
+      },
+      {
+        "package": "multidict",
+        "version": "6.0.2"
+      }
+    ]
+  },
+  {
+    "package": "discord",
+    "version": "1.7.3",
+    "deps": [
+      {
+        "package": "chardet",
+        "version": "4.0.0"
+      },
+      {
+        "package": "typing-extensions",
+        "version": "4.0.1"
+      },
+      {
+        "package": "attrs",
+        "version": "21.4.0"
+      },
+      {
+        "package": "discord.py",
+        "version": "1.7.3"
+      },
+      {
+        "package": "yarl",
+        "version": "1.7.2"
+      },
+      {
+        "package": "aiohttp",
+        "version": "3.7.4.post0"
+      },
+      {
+        "package": "async-timeout",
+        "version": "3.0.1"
+      },
+      {
+        "package": "idna",
+        "version": "3.3"
+      },
+      {
+        "package": "multidict",
+        "version": "6.0.2"
+      }
+    ]
+  },
+  {
+    "package": "bitly-api-py3",
+    "version": "0.3",
+    "deps": []
+  },
+  {
+    "package": "requests",
+    "version": "2.27.1",
+    "deps": [
+      {
+        "package": "certifi",
+        "version": "2021.10.8"
+      },
+      {
+        "package": "idna",
+        "version": "3.3"
+      },
+      {
+        "package": "charset-normalizer",
+        "version": "2.0.11"
+      },
+      {
+        "package": "urllib3",
+        "version": "1.26.8"
+      }
+    ]
+  },
+  {
+    "package": "youtube-dl",
+    "version": "2021.12.17",
+    "deps": []
+  },
+  {
+    "package": "pyspellchecker",
+    "version": "0.6.3",
+    "deps": []
+  },
+  {
+    "package": "discord-py-slash-command",
+    "version": "3.0.3",
+    "deps": [
+      {
+        "package": "chardet",
+        "version": "4.0.0"
+      },
+      {
+        "package": "typing-extensions",
+        "version": "4.0.1"
+      },
+      {
+        "package": "attrs",
+        "version": "21.4.0"
+      },
+      {
+        "package": "discord.py",
+        "version": "1.7.3"
+      },
+      {
+        "package": "yarl",
+        "version": "1.7.2"
+      },
+      {
+        "package": "aiohttp",
+        "version": "3.7.4.post0"
+      },
+      {
+        "package": "async-timeout",
+        "version": "3.0.1"
+      },
+      {
+        "package": "idna",
+        "version": "3.3"
+      },
+      {
+        "package": "multidict",
+        "version": "6.0.2"
+      }
+    ]
+  },
+  {
+    "package": "youtube-search",
+    "version": "2.1.0",
+    "deps": [
+      {
+        "package": "urllib3",
+        "version": "1.26.8"
+      },
+      {
+        "package": "requests",
+        "version": "2.27.1"
+      },
+      {
+        "package": "certifi",
+        "version": "2021.10.8"
+      },
+      {
+        "package": "charset-normalizer",
+        "version": "2.0.11"
+      },
+      {
+        "package": "idna",
+        "version": "3.3"
+      }
+    ]
+  }
+]

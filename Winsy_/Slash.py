@@ -6,9 +6,8 @@ from discord_slash.model import ButtonStyle, ContextMenuType
 from discord_slash.context import ComponentContext, MenuContext
 import Winsy
 
-
 async def main(slash, all_guilds, conn, error_channel):
-
+	print('Slash starting')
 	@slash.slash(
     name='youtube',
     description=
@@ -319,3 +318,5 @@ async def main(slash, all_guilds, conn, error_channel):
 	)
 	async def _unmute(ctx: SlashContext, user: discord.Member):
 		await Winsy.unmute(ctx, member=user)
+		
+	print('Slash registered')
